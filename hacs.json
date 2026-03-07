@@ -1,0 +1,7 @@
+{
+    "name": "Tempix",
+    "description": "Smart, event-based climate control for Home Assistant. Turns your HVAC systems and smart TRVs into an adaptive, self-learning system for heating and cooling.",
+    "render_readme": true,
+    "iot_class": "local_push",
+    "homeassistant": "2024.6.0"
+}

@@ -1,0 +1,50 @@
+trigger_update:
+  description: "Force a recalculation and apply temperatures."
+  fields:
+    config_entry_id:
+      description: "Optional: Target specifically one integration instance (config entry ID)."
+      required: false
+      selector:
+        config_entry:
+          integration: tempix
+
+set_party_mode:
+  description: "Set party mode status."
+  fields:
+    status:
+      description: "True to enable, False to disable."
+      example: true
+      required: true
+      selector:
+        boolean: {}
+    duration:
+      description: "Optional: Duration in minutes after which the status returns to False."
+      example: 120
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: "min"
+          mode: box
+
+set_guest_mode:
+  description: "Set guest mode status."
+  fields:
+    status:
+      description: "True to enable, False to disable."
+      example: true
+      required: true
+      selector:
+        boolean: {}
+    duration:
+      description: "Optional: Duration in minutes after which the status returns to False."
+      example: 120
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: "min"
+          mode: box
+

@@ -1,0 +1,121 @@
+{
+    "entity": {
+        "sensor": {
+            "status": {
+                "name": "Status"
+            }
+        },
+        "select": {
+            "hvac_mode_comfort": {
+                "name": "HVAC Mode Comfort",
+                "state": {
+                    "heat": "Heating",
+                    "cool": "Cooling",
+                    "heat_cool": "Heat / Cool",
+                    "auto": "Schedule (Auto)",
+                    "off": "Off"
+                }
+            },
+            "hvac_mode_eco": {
+                "name": "HVAC Mode Eco",
+                "state": {
+                    "heat": "Heating",
+                    "cool": "Cooling",
+                    "heat_cool": "Heat / Cool",
+                    "auto": "Schedule (Auto)",
+                    "off": "Off"
+                }
+            }
+        },
+        "number": {
+            "weather_offset": {
+                "name": "Weather Anticipation Offset"
+            },
+            "away_offset": {
+                "name": "Away Offset"
+            },
+            "aggressive_range": {
+                "name": "Aggressive Range"
+            },
+            "aggressive_offset": {
+                "name": "Aggressive Offset"
+            },
+            "frost_protection_temp": {
+                "name": "Frost Protection Temperature"
+            },
+            "temp_comfort_static": {
+                "name": "Comfort Temperature"
+            },
+            "temp_eco_static": {
+                "name": "Eco Temperature"
+            },
+            "window_open_temp": {
+                "name": "Window Open Temperature"
+            },
+            "party_temperature": {
+                "name": "Party Temperature"
+            },
+            "idle_temperature": {
+                "name": "Idle Temperature"
+            },
+            "generic_calibration_limit": {
+                "name": "Calibration Limit"
+            },
+            "max_optimum_start": {
+                "name": "Smart Preheating Max. Duration"
+            },
+            "learned_heating_rate": {
+                "name": "Smart Preheating Learning Rate"
+            }
+        },
+        "switch": {
+            "guest_mode_switch": {
+                "name": "Guest Mode"
+            },
+            "party_mode_switch": {
+                "name": "Party Mode"
+            },
+            "liming_protection": {
+                "name": "Liming Protection"
+            },
+            "frost_protection_enabled": {
+                "name": "Frost Protection"
+            },
+            "automation_active": {
+                "name": "Automation Active"
+            },
+            "optimum_start": {
+                "name": "Smart Preheating"
+            },
+            "weather_anticipation": {
+                "name": "Weather Anticipation"
+            },
+            "force_eco_switch": {
+                "name": "Force Eco Temperature"
+            },
+            "force_comfort_switch": {
+                "name": "Force Comfort Temperature"
+            }
+        },
+        "binary_sensor": {
+            "season_mode": {
+                "name": "Season Mode"
+            },
+            "anybody_home": {
+                "name": "Presence (Persons)"
+            },
+            "window_open": {
+                "name": "Window Open"
+            },
+            "away_mode": {
+                "name": "Away Mode"
+            },
+            "presence_active": {
+                "name": "Presence Detected"
+            },
+            "proximity_arrived": {
+                "name": "Proximity Arrived"
+            }
+        }
+    }
+}

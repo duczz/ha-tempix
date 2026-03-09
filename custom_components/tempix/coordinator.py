@@ -230,7 +230,7 @@ class TempixCoordinator:
             return
 
         now = datetime.now(UTC)
-        start = now
+        start = now - timedelta(days=1)
         end = now + timedelta(days=7)
 
         all_events: dict[str, list[dict[str, Any]]] = {}

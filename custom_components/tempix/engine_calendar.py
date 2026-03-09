@@ -213,6 +213,22 @@ class CalendarMixin:
 
                 if not is_all_day and start_dt and end_dt:
                     tz = dt_util.get_time_zone(self.hass.config.time_zone)
+                    now = datetime.now(UTC)
+
+                    if start_dt > now:
+                        # Eco phase: find most recent past event end as eco start
+                        latest_end_dt = None
+                        calendars = self.config.calendar
+                        for cal_id in calendars:
+                            for ev in self._calendar_events.get(cal_id, []):
+                                ev_end = self._parse_dt(ev.get("end_time") or ev.get("end"))
+                                if ev_end and ev_end <= now:
+                                    if latest_end_dt is None or ev_end > latest_end_dt:
+                                        latest_end_dt = ev_end
+                        eco_start_str = latest_end_dt.astimezone(tz).strftime('%H:%M') if latest_end_dt else "00:00"
+                        eco_end_str = start_dt.astimezone(tz).strftime('%H:%M')
+                        return f"{eco_start_str} - {eco_end_str}{suffix}"
+                        
                     return f"{start_dt.astimezone(tz).strftime('%H:%M')} - {end_dt.astimezone(tz).strftime('%H:%M')}{suffix}"
 
                 if forced_day:

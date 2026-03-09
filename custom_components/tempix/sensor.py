@@ -170,11 +170,11 @@ def _get_scheduler_name(engine) -> str:
     if in_cal_mode:
         cal_event = engine._get_active_calendar_event(force_check=True, active_only=False)
         if cal_event:
-            cal_id = cal_event.get("calendar_id")
-            is_active = False
-            if cal_id:
-                cal_state = engine._get_state(cal_id)
-                is_active = cal_state and cal_state.state == STATE_ON
+            from datetime import datetime, UTC
+            now = datetime.now(UTC)
+            start_dt = engine._parse_dt(cal_event.get("start_time") or cal_event.get("start"))
+            end_dt = engine._parse_dt(cal_event.get("end_time") or cal_event.get("end"))
+            is_active = bool(start_dt and end_dt and start_dt <= now < end_dt)
             prefix = "Kalender" if is_active else "Kalender (nächster)"
             summary = cal_event.get("summary")
             if summary and summary != "none":

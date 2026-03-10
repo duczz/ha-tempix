@@ -2,4 +2,3 @@ __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
-debug_log.txt

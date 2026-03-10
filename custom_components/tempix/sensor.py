@@ -257,6 +257,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
             "external_room_temperature": engine._resolve_room_temp(),
             "season_mode": engine.is_season_mode(),
             "automation_active": engine.is_automation_active(),
+            "manual_override_pause": engine.config.manual_override_pause,
             "outside_temperature": engine._float_state(engine.config.outside_temp_sensor),
             "anybody_home": engine.is_anybody_home(),
             "scheduler_active": engine.is_scheduler_active(),

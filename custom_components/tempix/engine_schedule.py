@@ -393,6 +393,9 @@ class ScheduleMixin:
             FORCE_COMFORT > FORCE_ECO > ADJUSTMENT > SMART_PREHEATING >
             AWAY > COMFORT/ECO > PAUSED (uncertain)
         """
+        if self.config.manual_override_pause:
+            return HeatingState.MANUAL_OVERRIDE
+
         if self.is_frost_protection():
             return HeatingState.FROST_PROTECTION
 

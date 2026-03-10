@@ -16,6 +16,7 @@ from custom_components.tempix.const import (
     CONF_PARTY_MODE_SWITCH,
     CONF_GUEST_MODE_SWITCH,
     CONF_AUTOMATION_ACTIVE,
+    CONF_MANUAL_OVERRIDE_PAUSE,
     CONF_OPTIMUM_START,
     CONF_WEATHER_ANTICIPATION,
     CONF_FORCE_COMFORT_SWITCH,
@@ -46,6 +47,10 @@ async def async_setup_entry(
         TempixSwitch(
             coordinator, entry,
             CONF_AUTOMATION_ACTIVE, "Automation Active", "mdi:robot"
+        ),
+        TempixSwitch(
+            coordinator, entry,
+            CONF_MANUAL_OVERRIDE_PAUSE, "Manual Override", "mdi:hand-back-right"
         ),
 
         TempixSwitch(

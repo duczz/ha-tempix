@@ -182,6 +182,7 @@ class TempixConfig:
     # ── Season / Automation ──────────────────────────────────────────────
     season_mode_entity: str | None = None
     automation_active: bool = True
+    manual_override_pause: bool = False
     idle_temperature: float = 0.0
 
     # ── Valve Positioning ────────────────────────────────────────────────
@@ -339,6 +340,7 @@ class TempixConfig:
             # Season / Automation
             season_mode_entity=g("season_mode_entity"),
             automation_active=bool(g("automation_active", True)),
+            manual_override_pause=bool(g("manual_override_pause", False)),
             idle_temperature=float(g("idle_temperature", 0.0)),
             # Valve
             valve_mode=g("valve_mode", "off"),

@@ -128,6 +128,7 @@ class TempixClimate(ClimateEntity, RestoreEntity):
             "target_temperature_calculated": self._coordinator.current_temperature,
             "hvac_mode_calculated": self._coordinator.current_hvac,
             "automation_active": engine.is_automation_active(),
+            "manual_override_pause": engine.config.manual_override_pause,
             "season_mode": engine.is_season_mode(),
             "is_away": engine.is_away(),
             "is_party": engine.check_party_mode()[0],

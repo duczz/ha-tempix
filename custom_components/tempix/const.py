@@ -144,6 +144,7 @@ CONF_LOG_LEVEL = "log_level"
 
 # 19. Automation Control
 CONF_AUTOMATION_ACTIVE = "automation_active"
+CONF_MANUAL_OVERRIDE_PAUSE = "manual_override_pause"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_SENSOR_RETENTION = "sensor_retention"
 
@@ -250,10 +251,11 @@ class HeatingState(Enum):
     """Explicit heating state – formalises the implicit priority chain.
 
     Priority order (highest wins):
-        PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN > LIMING >
-        PARTY > FORCE_COMFORT > FORCE_ECO > ADJUSTMENT >
+        MANUAL_OVERRIDE > PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN >
+        LIMING > PARTY > FORCE_COMFORT > FORCE_ECO > ADJUSTMENT >
         SMART_PREHEATING > AWAY > COMFORT > ECO
     """
+    MANUAL_OVERRIDE = "manual_override"
     PAUSED = "paused"
     INACTIVE = "inactive"
     FROST_PROTECTION = "frost_protection"

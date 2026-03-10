@@ -808,6 +808,9 @@
             "automation_active": {
                 "name": "Automation Active"
             },
+            "manual_override_pause": {
+                "name": "Manual Override (Pause)"
+            },
             "optimum_start": {
                 "name": "Smart Preheating"
             },

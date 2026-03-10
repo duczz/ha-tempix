@@ -56,7 +56,7 @@ class HeatingRateLearner:
             and (target_temp - current_temp) * factor > 0.5
         )
 
-        if is_active_mode and temp_away_from_target and self._engine.is_automation_active():
+        if is_active_mode and temp_away_from_target and self._engine.is_automation_active() and not self._engine.config.manual_override_pause:
             if self._heating_session is None:
                 self._debug_log(
                     f"Learning: Starting heating session "

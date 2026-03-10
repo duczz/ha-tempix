@@ -821,6 +821,9 @@
             "automation_active": {
                 "name": "Automatisierung Aktiv"
             },
+            "manual_override_pause": {
+                "name": "Manuelle Unterbrechung (Pause)"
+            },
             "optimum_start": {
                 "name": "Intelligentes Vorheizen"
             },

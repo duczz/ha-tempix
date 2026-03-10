@@ -228,7 +228,7 @@ class CalendarMixin:
                         eco_start_str = latest_end_dt.astimezone(tz).strftime('%H:%M') if latest_end_dt else "00:00"
                         eco_end_str = start_dt.astimezone(tz).strftime('%H:%M')
                         return f"{eco_start_str} - {eco_end_str}{suffix}"
-                        
+
                     return f"{start_dt.astimezone(tz).strftime('%H:%M')} - {end_dt.astimezone(tz).strftime('%H:%M')}{suffix}"
 
                 if forced_day:

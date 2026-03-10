@@ -579,6 +579,11 @@ class TempixCoordinator:
         if target_temp is None or hvac_mode is None:
             return False
 
+        # ── Manual Override / Pause (hands-off) ──────────────────────────
+        if self.config.manual_override_pause:
+            self._call_listeners()
+            return True
+
         # ── 1.2 Heating Rate Learning (v1.5.0) ───────────────────────────
         if self.config.optimum_start:
             await self._rate_learner.update(target_temp, hvac_mode)
@@ -682,6 +687,9 @@ class TempixCoordinator:
                          side-effects on _optimum_start_active (CQS fix).
         """
         match self.current_state:
+            case HeatingState.MANUAL_OVERRIDE:
+                return "Manual Override (Paused)"
+
             case HeatingState.PAUSED:
                 reasons = self.engine.get_uncertainty_reasons()
                 if reasons:

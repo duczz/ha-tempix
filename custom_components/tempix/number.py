@@ -118,7 +118,9 @@ class TempixNumber(NumberEntity, RestoreEntity):
     @property
     def native_value(self) -> float:
         """Return the current value."""
-        val = getattr(self._coordinator.config, self._key, 0.0)
+        val = getattr(self._coordinator.config, self._key, None)
+        if val is None:
+            return 0.0
         if isinstance(val, timedelta):
             return val.total_seconds() / 60.0
         return float(val)

@@ -239,6 +239,33 @@ class TempixCommonFlow:
             return val
         return [val]
 
+    def _get_trv_hvac_modes(self) -> list[str]:
+        """Return the intersection of HVAC modes supported by all configured TRVs.
+
+        Falls back to ["heat", "auto", "off"] if TRVs are unavailable or
+        the intersection is empty.
+        """
+        _valid_order = ["heat", "cool", "heat_cool", "auto", "off"]
+        _fallback = ["heat", "cool", "auto", "off"]
+
+        trv_ids = self._get_list_default(CONF_TRVS)
+        if not trv_ids:
+            return _fallback
+
+        supported: set[str] | None = None
+        for trv_id in trv_ids:
+            state = self.hass.states.get(trv_id)
+            if state is None:
+                continue
+            trv_modes = set(state.attributes.get("hvac_modes", []))
+            supported = trv_modes if supported is None else supported & trv_modes
+
+        if not supported:
+            return _fallback
+
+        result = [m for m in _valid_order if m in supported]
+        return result if result else _fallback
+
     def _get_entity_default(self, key: str) -> Any:
         val = self._get_default(key)
         if val in (None, "", "None"):
@@ -327,15 +354,23 @@ class TempixCommonFlow:
             next_step = "expert_climate_calendar" if mode == SCHEDULING_MODE_CALENDAR else "expert_climate_schedulers"
             return await self._save_and_next(user_input, next_step)
 
+        trv_modes = self._get_trv_hvac_modes()
+        _comfort_default = self._get_default(CONF_HVAC_MODE_COMFORT, "heat")
+        if _comfort_default not in trv_modes:
+            _comfort_default = trv_modes[0]
+        _eco_default = self._get_default(CONF_HVAC_MODE_ECO, "heat")
+        if _eco_default not in trv_modes:
+            _eco_default = trv_modes[0]
+
         return self.async_show_form(
             step_id="expert_climate",
             data_schema=vol.Schema({
                 # ── Config Section: Temperatures ──
                 vol.Optional("sec_temperatures"): section(vol.Schema({
                     vol.Optional(CONF_TEMPERATURE_COMFORT_STATIC, default=self._get_default(CONF_TEMPERATURE_COMFORT_STATIC, DEFAULT_COMFORT_TEMP)): _number_sel(5, 30, 0.5, mode="slider"),
-                    vol.Optional(CONF_HVAC_MODE_COMFORT, default=self._get_default(CONF_HVAC_MODE_COMFORT, "heat")): _select_sel(["heat", "auto", "off"], translation_key="hvac_modes", mode=selector.SelectSelectorMode.DROPDOWN),
+                    vol.Optional(CONF_HVAC_MODE_COMFORT, default=_comfort_default): _select_sel(trv_modes, translation_key="hvac_mode", mode=selector.SelectSelectorMode.DROPDOWN),
                     vol.Optional(CONF_TEMPERATURE_ECO_STATIC, default=self._get_default(CONF_TEMPERATURE_ECO_STATIC, DEFAULT_ECO_TEMP)): _number_sel(5, 30, 0.5, mode="slider"),
-                    vol.Optional(CONF_HVAC_MODE_ECO, default=self._get_default(CONF_HVAC_MODE_ECO, "heat")): _select_sel(["heat", "auto", "off"], translation_key="hvac_modes", mode=selector.SelectSelectorMode.DROPDOWN),
+                    vol.Optional(CONF_HVAC_MODE_ECO, default=_eco_default): _select_sel(trv_modes, translation_key="hvac_mode", mode=selector.SelectSelectorMode.DROPDOWN),
                     vol.Optional(CONF_HYSTERESIS, default=self._get_default(CONF_HYSTERESIS, DEFAULT_HYSTERESIS)): _number_sel(0, 2, 0.1, mode="slider"),
                 }), {"collapsed": True}),
                 

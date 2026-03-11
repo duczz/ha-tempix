@@ -48,14 +48,14 @@
                             "outside_temp_sensor": "Außentemperatur-Quelle",
                             "outside_temp_threshold": "Heiz-Schwelle (Außen)",
                             "outside_temp_hysteresis": "Hysterese (Außenschwelle)",
-                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterheizen",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterregeln",
                             "weather_entity": "Wetter-Entität (Wetter-Anticipation)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
                             "outside_temp_threshold": "Die Heizung wird deaktiviert, wenn die Außentemperatur diesen Wert überschreitet.",
                             "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Heizung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
-                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass geheizt werden muss.",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
                             "weather_entity": "Optionale Wetter-Entität für die Wetter-Anticipation. Bei sonnigem oder klarem Wetter wird die Zieltemperatur um den Wetter-Anticipation-Offset reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
                         }
                     }
@@ -405,14 +405,14 @@
                             "outside_temp_sensor": "Außentemperatur-Quelle",
                             "outside_temp_threshold": "Heiz-Schwelle (Außen)",
                             "outside_temp_hysteresis": "Hysterese (Außenschwelle)",
-                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterheizen",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterregeln",
                             "weather_entity": "Wetter-Entität (Wetter-Anticipation)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
                             "outside_temp_threshold": "Die Heizung wird deaktiviert, wenn die Außentemperatur diesen Wert überschreitet.",
                             "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Heizung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
-                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass geheizt werden muss.",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
                             "weather_entity": "Optionale Wetter-Entität für die Wetter-Anticipation. Bei sonnigem oder klarem Wetter wird die Zieltemperatur um den Wetter-Anticipation-Offset reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
                         }
                     }
@@ -861,6 +861,8 @@
             "hvac_mode": {
                 "options": {
                     "heat": "Heizen",
+                    "cool": "Kühlen",
+                    "heat_cool": "Heizen / Kühlen",
                     "auto": "Zeitplan (Auto)",
                     "off": "Aus"
                 }

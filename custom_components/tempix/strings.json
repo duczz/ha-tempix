@@ -46,15 +46,15 @@
                         "name": "Outside Temperature",
                         "data": {
                             "outside_temp_sensor": "Outside Temperature Source",
-                            "outside_temp_threshold": "Heating Threshold (Outside)",
+                            "outside_temp_threshold": "Climate Threshold (Outside)",
                             "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
                             "outside_temp_fallback": "Continue on sensor failure",
                             "weather_entity": "Weather Entity (Weather Anticipation)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
-                            "outside_temp_threshold": "Heating is disabled when outside temperature exceeds this value.",
-                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, heating turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
                             "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }
@@ -403,15 +403,15 @@
                         "name": "Outside Temperature",
                         "data": {
                             "outside_temp_sensor": "Outside Temperature Source",
-                            "outside_temp_threshold": "Heating Threshold (Outside)",
+                            "outside_temp_threshold": "Climate Threshold (Outside)",
                             "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
                             "outside_temp_fallback": "Continue on sensor failure",
                             "weather_entity": "Weather Entity (Weather Anticipation)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
-                            "outside_temp_threshold": "Heating is disabled when outside temperature exceeds this value.",
-                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, heating turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
                             "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }

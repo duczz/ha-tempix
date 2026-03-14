@@ -184,7 +184,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # If no reload-required key was changed, do a dynamic update
     if not (changed_keys & RELOAD_REQUIRED_KEYS):
-        _LOGGER.info("Dynamic update for %s. Keys: %s", entry.entry_id, changed_keys)
+        _LOGGER.info("Dynamic update for %s. Keys: %s", entry.title, changed_keys)
         typed_config = TempixConfig.from_dict(new_config)
         data["engine"].config = typed_config
         data["coordinator"].config = typed_config
@@ -194,5 +194,5 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         return
 
     # Otherwise, full reload
-    _LOGGER.warning("Full reload required for %s due to changes in: %s", entry.entry_id, (changed_keys & RELOAD_REQUIRED_KEYS) or changed_keys)
+    _LOGGER.warning("Full reload required for %s due to changes in: %s", entry.title, (changed_keys & RELOAD_REQUIRED_KEYS) or changed_keys)
     await hass.config_entries.async_reload(entry.entry_id)

@@ -703,8 +703,11 @@ class TempixCoordinator:
                 if not self.engine.is_season_mode():
                     parts.append("Off")
                 t = self.engine.check_outside_threshold()
-                if t is False:
-                    parts.append("Outside > Threshold")
+                if t is False and self.engine.is_season_mode():
+                    if (not self.engine.is_scheduler_defined()
+                            or self.engine.is_scheduler_active() is not False
+                            or self.engine.is_calendar_comfort_active() is not False):
+                        parts.append("Outside > Threshold")
                 return " | ".join(parts) if parts else "Inactive"
 
             case HeatingState.FROST_PROTECTION:

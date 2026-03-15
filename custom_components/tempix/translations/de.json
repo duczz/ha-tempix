@@ -856,55 +856,55 @@
             "proximity_arrived": {
                 "name": "Näherung erreicht"
             }
+        }
+    },
+    "selector": {
+        "hvac_mode": {
+            "options": {
+                "heat": "Heizen",
+                "cool": "Kühlen",
+                "heat_cool": "Heizen / Kühlen",
+                "auto": "Auto",
+                "off": "Aus"
+            }
         },
-        "selector": {
-            "hvac_mode": {
-                "options": {
-                    "heat": "Heizen",
-                    "cool": "Kühlen",
-                    "heat_cool": "Heizen / Kühlen",
-                    "auto": "Zeitplan (Auto)",
-                    "off": "Aus"
-                }
-            },
-            "scheduling_mode": {
-                "options": {
-                    "helper": "Zeitplan – Helfer",
-                    "calendar": "Kalender – Integration"
-                }
-            },
-            "calibration_mode": {
-                "options": {
-                    "off": "Aus",
-                    "native": "Nativ (Geräte-intern)",
-                    "generic": "Generisch (Ziel-Temperatur)"
-                }
-            },
-            "calibration_step_size": {
-                "options": {
-                    "auto": "Automatisch",
-                    "full": "1.0°C",
-                    "0.5": "0.5°C",
-                    "0.1": "0.1°C"
-                }
-            },
-            "aggressive_mode": {
-                "options": {
-                    "off": "Aus",
-                    "target_temp": "Ziel-Temperatur (Boost)",
-                    "calibration": "Kalibrierung (Offset)"
-                }
-            },
-            "liming_day": {
-                "options": {
-                    "Mon": "Montag",
-                    "Tue": "Dienstag",
-                    "Wed": "Mittwoch",
-                    "Thu": "Donnerstag",
-                    "Fri": "Freitag",
-                    "Sat": "Samstag",
-                    "Sun": "Sonntag"
-                }
+        "scheduling_mode": {
+            "options": {
+                "helper": "Zeitplan – Helfer",
+                "calendar": "Kalender – Integration"
+            }
+        },
+        "calibration_mode": {
+            "options": {
+                "off": "Aus",
+                "native": "Nativ (Geräte-intern)",
+                "generic": "Generisch (Ziel-Temperatur)"
+            }
+        },
+        "calibration_step_size": {
+            "options": {
+                "auto": "Auto",
+                "full": "1.0°C",
+                "0.5": "0.5°C",
+                "0.1": "0.1°C"
+            }
+        },
+        "aggressive_mode": {
+            "options": {
+                "off": "Aus",
+                "target_temp": "Ziel-Temperatur (Boost)",
+                "calibration": "Kalibrierung (Offset)"
+            }
+        },
+        "liming_day": {
+            "options": {
+                "Mon": "Montag",
+                "Tue": "Dienstag",
+                "Wed": "Mittwoch",
+                "Thu": "Donnerstag",
+                "Fri": "Freitag",
+                "Sat": "Samstag",
+                "Sun": "Sonntag"
             }
         }
     }

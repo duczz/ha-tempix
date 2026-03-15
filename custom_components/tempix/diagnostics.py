@@ -155,5 +155,4 @@ async def async_get_config_entry_diagnostics(
             "uptime_seconds": (now - startup).total_seconds() if startup else None,
             "last_update": last_update if isinstance(last_update, str) else str(last_update) if last_update else None,
         },
-        "state_snapshot": engine._state_snapshot,
     }

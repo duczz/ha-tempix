@@ -898,13 +898,13 @@
         },
         "liming_day": {
             "options": {
-                "Mon": "Montag",
-                "Tue": "Dienstag",
-                "Wed": "Mittwoch",
-                "Thu": "Donnerstag",
-                "Fri": "Freitag",
-                "Sat": "Samstag",
-                "Sun": "Sonntag"
+                "mon": "Montag",
+                "tue": "Dienstag",
+                "wed": "Mittwoch",
+                "thu": "Donnerstag",
+                "fri": "Freitag",
+                "sat": "Samstag",
+                "sun": "Sonntag"
             }
         }
     }

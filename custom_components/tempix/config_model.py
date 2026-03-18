@@ -174,7 +174,7 @@ class TempixConfig:
 
     # ── Liming Protection ────────────────────────────────────────────────
     liming_protection: bool = False
-    liming_day: str = "Mon"
+    liming_day: str = "mon"
     liming_time: str = "12:00:00"
     liming_duration: int = 1
     liming_in_season: bool = False
@@ -333,7 +333,7 @@ class TempixConfig:
             ),
             # Liming
             liming_protection=bool(g("liming_protection", False)),
-            liming_day=g("liming_day", "Mon"),
+            liming_day=g("liming_day", "mon"),
             liming_time=g("liming_time", "12:00:00"),
             liming_duration=int(g("liming_duration", 1)),
             liming_in_season=bool(g("liming_in_season", False)),

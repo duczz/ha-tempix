@@ -343,10 +343,10 @@ class CalendarMixin:
             if day_match:
                 day_str = day_match.group(1).title()
                 day_map = {
-                    "Monday": "Mon", "Tuesday": "Tue", "Wednesday": "Wed",
-                    "Thursday": "Thu", "Friday": "Fri", "Saturday": "Sat", "Sunday": "Sun",
+                    "Monday": "mon", "Tuesday": "tue", "Wednesday": "wed",
+                    "Thursday": "thu", "Friday": "fri", "Saturday": "sat", "Sunday": "sun",
                 }
-                tags["use_day"] = day_map.get(day_str, day_str[:3])
+                tags["use_day"] = day_map.get(day_str, day_str[:3].lower())
                 if day_match.group(2):
                     tags["delegate_calendar"] = day_match.group(2).strip()
 

@@ -540,7 +540,7 @@ class TempixCommonFlow:
                     vol.Optional(CONF_FROST_PROTECTION_TEMP, default=self._get_default(CONF_FROST_PROTECTION_TEMP, DEFAULT_FROST_TEMP)): _number_sel(0, 15, 0.5),
                     vol.Optional(CONF_FROST_PROTECTION_DURATION, default=self._get_default(CONF_FROST_PROTECTION_DURATION, DEFAULT_FROST_DURATION)): _duration_sel(),
                     vol.Optional(CONF_LIMING_PROTECTION, default=self._get_default(CONF_LIMING_PROTECTION, False)): _bool_sel(),
-                    vol.Optional(CONF_LIMING_DAY, default=self._get_default(CONF_LIMING_DAY, "Mon")): _select_sel(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], translation_key="liming_day", mode=selector.SelectSelectorMode.DROPDOWN),
+                    vol.Optional(CONF_LIMING_DAY, default=self._get_default(CONF_LIMING_DAY, "mon")): _select_sel(["mon", "tue", "wed", "thu", "fri", "sat", "sun"], translation_key="liming_day", mode=selector.SelectSelectorMode.DROPDOWN),
                     vol.Optional(CONF_LIMING_TIME, default=self._get_default(CONF_LIMING_TIME, "12:00:00")): _text_sel(),
                     vol.Optional(CONF_LIMING_DURATION, default=self._get_default(CONF_LIMING_DURATION, DEFAULT_LIMING_DURATION)): _number_sel(1, 60, 1, unit="min"),
                     vol.Optional(CONF_LIMING_IN_SEASON, default=self._get_default(CONF_LIMING_IN_SEASON, False)): _bool_sel(),

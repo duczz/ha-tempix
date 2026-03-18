@@ -208,7 +208,7 @@ class ProtectionMixin:
         now = datetime.now(UTC)
         target_day = self.config.liming_day
 
-        days_map = {"Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6}
+        days_map = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
         target_wd = days_map.get(target_day, 0)
 
         if now.weekday() != target_wd:

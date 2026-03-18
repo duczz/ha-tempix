@@ -885,13 +885,13 @@
         },
         "liming_day": {
             "options": {
-                "Mon": "Monday",
-                "Tue": "Tuesday",
-                "Wed": "Wednesday",
-                "Thu": "Thursday",
-                "Fri": "Friday",
-                "Sat": "Saturday",
-                "Sun": "Sunday"
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday",
+                "sun": "Sunday"
             }
         }
     }

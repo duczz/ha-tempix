@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before reporting, please check [existing issues](https://github.com/duczz/ha-tempix/issues) to avoid duplicates.
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Version
+      placeholder: "2024.6.0"
+    validations:
+      required: true
+
+  - type: input
+    id: tempix_version
+    attributes:
+      label: Tempix Version
+      placeholder: "1.6.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Set ... to ...
+        3. See error
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Diagnostics
+      description: |
+        Paste relevant logs from Settings > System > Logs, or attach the Diagnostics file from Settings > Devices & Services > Tempix > Download Diagnostics.
+      render: text
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I am running the latest version of Tempix
+          required: true

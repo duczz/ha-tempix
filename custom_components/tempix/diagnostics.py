@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, UTC
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import __version__ as HA_VERSION
 from homeassistant.core import HomeAssistant
@@ -15,6 +16,8 @@ from .const import (
     VERSION,
 )
 
+TO_REDACT = {"persons", "active_calendar_event", "presence_sensor"}
+
 
 def _safe_state(hass: HomeAssistant, entity_id: str | list | None) -> dict[str, Any] | None:
     """Safely get an entity state for diagnostics."""
@@ -22,7 +25,7 @@ def _safe_state(hass: HomeAssistant, entity_id: str | list | None) -> dict[str, 
         entity_id = entity_id[0] if entity_id else None
     if not isinstance(entity_id, str):
         return None
-        
+
     state = hass.states.get(entity_id)
     if not state:
         return None
@@ -31,6 +34,28 @@ def _safe_state(hass: HomeAssistant, entity_id: str | list | None) -> dict[str, 
         "attributes": dict(state.attributes),
         "last_changed": state.last_changed.isoformat() if state.last_changed else None,
         "last_updated": state.last_updated.isoformat() if state.last_updated else None,
+    }
+
+
+def _redact_calendar_events(events: dict | None) -> dict | None:
+    """Remove location and calendar_id from each event; anonymize calendar keys."""
+    if not events:
+        return events
+    result = {}
+    for i, cal_events in enumerate(events.values()):
+        cleaned = [
+            {k: v for k, v in ev.items() if k not in ("location", "calendar_id")}
+            for ev in (cal_events or [])
+        ]
+        result[f"calendar_{i}"] = cleaned
+    return result
+
+
+def _redact_person_states(person_states: dict) -> dict:
+    """Anonymize person entity IDs and reduce attributes to state only."""
+    return {
+        f"person_{i}": {"state": state.get("state")} if state else None
+        for i, state in enumerate(person_states.values())
     }
 
 
@@ -87,7 +112,7 @@ async def async_get_config_entry_diagnostics(
     ready = getattr(coordinator, "_ready_time", None)
     last_update = getattr(coordinator, "_last_update", None)
 
-    return {
+    diag = {
         "system": {
             "ha_version": HA_VERSION,
             "python_version": sys.version,
@@ -134,13 +159,13 @@ async def async_get_config_entry_diagnostics(
             "active_scheduler": engine.get_active_scheduler(),
             "active_calendar_event": engine._get_active_calendar_event(active_only=False),
             "calendar_tags": engine.get_calendar_tags(),
-            "fetched_calendar_events": engine._calendar_events,
+            "fetched_calendar_events": _redact_calendar_events(engine._calendar_events),
             "schedule_period": engine.get_active_schedule_period(),
             "next_schedule_transition": engine.get_next_schedule_transition(),
         },
         "trv_states": trv_states,
         "sensor_states": sensor_states,
-        "person_states": person_states,
+        "person_states": _redact_person_states(person_states),
         "coordinator_state": {
             "current_temperature": coordinator.current_temperature,
             "current_hvac": coordinator.current_hvac,
@@ -156,3 +181,5 @@ async def async_get_config_entry_diagnostics(
             "last_update": last_update if isinstance(last_update, str) else str(last_update) if last_update else None,
         },
     }
+
+    return async_redact_data(diag, TO_REDACT)

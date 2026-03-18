@@ -1,13 +1,13 @@
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
+[![HA Version](https://img.shields.io/badge/HA%20Minimum-2024.6.0-blue)](https://www.home-assistant.io)
+[![Version](https://img.shields.io/badge/Version-1.6.0-green)](https://github.com/duczz/ha-tempix/releases)
+[![IoT Class](https://img.shields.io/badge/IoT%20Class-local__push-brightgreen)](https://www.home-assistant.io/integrations)
+
 # 🏠 Tempix
 
 > **Intelligente, ereignisbasierte Heizungs- & Klimaanlagensteuerung für Home Assistant.**
 > 
 > Verwandelt deine TRV-Thermostate in ein adaptives, selbstlernendes Heizsystem – rein lokal, ohne Cloud, ohne Abo.
-
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
-[![HA Version](https://img.shields.io/badge/HA%20Minimum-2024.6.0-blue)](https://www.home-assistant.io)
-[![Version](https://img.shields.io/badge/Version-1.6.0-green)](https://github.com/duczz/ha-tempix/releases)
-[![IoT Class](https://img.shields.io/badge/IoT%20Class-local__push-brightgreen)](https://www.home-assistant.io/integrations)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=duczz&repository=ha-tempix&category=integration)
 

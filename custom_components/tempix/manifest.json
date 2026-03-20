@@ -1,17 +1,16 @@
 {
   "domain": "tempix",
   "name": "Tempix",
-  "documentation": "https://github.com/duczz/ha-tempix",
-  "dependencies": [],
   "after_dependencies": [
     "tado"
   ],
-  "homeassistant": "2024.6.0",
   "codeowners": [
     "@duczz"
   ],
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/duczz/ha-tempix",
   "iot_class": "local_push",
-  "version": "1.6.0",
-  "issue_tracker": "https://github.com/duczz/ha-tempix/issues"
+  "issue_tracker": "https://github.com/duczz/ha-tempix/issues",
+  "version": "1.6.0"
 }

@@ -122,9 +122,9 @@ class CalibrationMixin:
             calib_step = self.config.calibration_step_size
             if calib_step == "full":
                 step = 1.0
-            elif calib_step == "0.5":
+            elif calib_step == "half":
                 step = 0.5
-            elif calib_step == "0.1":
+            elif calib_step == "precise":
                 step = 0.1
             else:
                 step = state.attributes.get("target_temp_step", 0.5)
@@ -327,9 +327,9 @@ class CalibrationMixin:
         if step is None:
             if step_cfg == "full":
                 step = 1.0
-            elif step_cfg == "0.5":
+            elif step_cfg == "half":
                 step = 0.5
-            elif step_cfg == "0.1":
+            elif step_cfg == "precise":
                 step = 0.1
             else:
                 step = state.attributes.get("target_temp_step", 0.5)

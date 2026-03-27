@@ -1,0 +1,898 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Welcome",
+                "description": "Give this heating control a unique name.",
+                "data": {
+                    "name": "Control Name"
+                },
+                "data_description": {
+                    "name": "Example: Living Room, Office, Bedroom"
+                }
+            },
+            "expert_hardware": {
+                "title": "1/6 · Devices & Sensors",
+                "description": "Configure the physical hardware in this room: thermostats, temperature sensors, window contacts and outside temperature source.",
+                "data": {
+                    "trvs": "Thermostats (TRVs)",
+                    "temp_sensor": "Room Temperature Sensor",
+                    "sec_window": "Window & Door Contacts",
+                    "sec_outside": "Outside Temperature"
+                },
+                "data_description": {
+                    "trvs": "At least one TRV is required.",
+                    "temp_sensor": "External sensor overrides the TRV's built‑in reading for better accuracy."
+                },
+                "sections": {
+                    "sec_window": {
+                        "name": "Window & Door Contacts",
+                        "data": {
+                            "window_sensors": "Window & Door Sensors",
+                            "window_reaction_open": "Delay – Window Opens",
+                            "window_reaction_close": "Delay – Window Closes",
+                            "window_open_temp": "Ventilation Temperature",
+                            "window_legacy_restore": "Restore previous temperature"
+                        },
+                        "data_description": {
+                            "window_sensors": "Heating pauses automatically when a sensor reports 'open'.",
+                            "window_reaction_open": "Wait this long before lowering the temperature.",
+                            "window_reaction_close": "Wait this long before restoring the temperature.",
+                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
+                            "window_legacy_restore": "If enabled, restore the target temperature that was active before the window was opened."
+                        }
+                    },
+                    "sec_outside": {
+                        "name": "Outside Temperature",
+                        "data": {
+                            "outside_temp_sensor": "Outside Temperature Source",
+                            "outside_temp_threshold": "Climate Threshold (Outside)",
+                            "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
+                            "outside_temp_fallback": "Continue on sensor failure",
+                            "weather_entity": "Weather Entity (Weather Anticipation)"
+                        },
+                        "data_description": {
+                            "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
+                            "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
+                            "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
+                        }
+                    }
+                }
+            },
+            "expert_climate": {
+                "title": "2/6 · Climate & Schedule",
+                "description": "Set target temperatures, choose your scheduling method, and configure thermostat calibration.",
+                "data": {
+                    "sec_temperatures": "Temperatures",
+                    "sec_scheduling": "Scheduling",
+                    "sec_calibration": "Calibration Settings"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperatures": {
+                        "name": "Temperatures",
+                        "data": {
+                            "temp_comfort_static": "Comfort Temperature",
+                            "hvac_mode_comfort": "HVAC Mode at Comfort",
+                            "temp_eco_static": "Eco Temperature",
+                            "hvac_mode_eco": "HVAC Mode at Eco",
+                            "hysteresis": "Hysteresis"
+                        },
+                        "data_description": {
+                            "temp_comfort_static": "Active temperature when someone is home.",
+                            "hvac_mode_comfort": "Which HVAC mode to set on the TRV during Comfort.",
+                            "temp_eco_static": "Energy‑saving temperature for unoccupied periods.",
+                            "hvac_mode_eco": "Which HVAC mode to set on the TRV during Eco.",
+                            "hysteresis": "Tolerance band used when 'Switch TRV off above room temperature' is enabled. The TRV switches off when room temperature exceeds target + hysteresis, and back on when it drops below target − hysteresis."
+                        }
+                    },
+                    "sec_scheduling": {
+                        "name": "Scheduling",
+                        "data": {
+                            "scheduling_mode": "Scheduling Method"
+                        },
+                        "data_description": {
+                            "scheduling_mode": "Choose 'Helper' for schedule entities or 'Calendar' for calendar‑based control."
+                        }
+                    },
+                    "sec_calibration": {
+                        "name": "Calibration Settings",
+                        "data": {
+                            "calibration_mode": "Calibration Mode",
+                            "generic_calibration_limit": "Max. Calibration Limit",
+                            "calibration_delta": "Calibration Delta",
+                            "calibration_step_size": "Step Size",
+                            "calibration_keyword": "Entity Filter Keyword",
+                            "calibration_timeout": "Calibration Interval"
+                        },
+                        "data_description": {
+                            "calibration_mode": "'Native' adjusts the TRV's internal offset; 'Generic' adjusts the target temperature.",
+                            "generic_calibration_limit": "Maximum allowed offset for generic calibration to prevent overheating on sensor failure.",
+                            "calibration_delta": "Minimum temperature difference before a calibration update is sent.",
+                            "calibration_step_size": "Precision of calibration adjustments.",
+                            "calibration_keyword": "Only calibrate entities whose name contains this keyword.",
+                            "calibration_timeout": "How often to recalculate the calibration offset."
+                        }
+                    }
+                }
+            },
+            "expert_climate_calendar": {
+                "title": "3/6 · Calendar Settings",
+                "description": "Fine‑tune how calendar events control this room's heating.",
+                "data": {
+                    "calendar": "Calendar Entities",
+                    "calendar_event": "Event Keywords",
+                    "calendar_room": "Location Filter",
+                    "calendar_scan_interval": "Scan Interval",
+                    "sync_calendar_with_entities": "Sync with Helpers"
+                },
+                "data_description": {
+                    "calendar": "Select one or more calendar entities to watch for events.",
+                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
+                    "calendar_room": "Optional: only respond to events at this location.",
+                    "calendar_scan_interval": "How often to check the calendar for new events.",
+                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards."
+                }
+            },
+            "expert_presence": {
+                "title": "4/6 · Presence & People",
+                "description": "Configure who lives here, how guests are handled, and how the system detects occupancy.",
+                "data": {
+                    "sec_persons": "Persons & Guests",
+                    "sec_proximity": "Proximity & Geo-Fencing",
+                    "sec_presence_sensor": "Room Presence Sensor"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_persons": {
+                        "name": "Persons & Guests",
+                        "data": {
+                            "persons": "Persons & Devices",
+                            "guest_mode": "Guest Mode Entities",
+                            "people_entering_duration": "Arrival Delay",
+                            "people_leaving_duration": "Departure Delay",
+                            "persons_force_comfort": "Presence Forces Comfort",
+                            "persons_force_comfort_start": "Override Start Time",
+                            "persons_force_comfort_end": "Override End Time"
+                        },
+                        "data_description": {
+                            "persons": "Persons whose home/away status affects heating.",
+                            "guest_mode": "When any of these is ON, heating behaves as if someone is home.",
+                            "people_entering_duration": "Grace period before 'arriving home' triggers Comfort.",
+                            "people_leaving_duration": "Grace period before 'leaving home' triggers Eco.",
+                            "persons_force_comfort": "If ON, heating will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
+                            "persons_force_comfort_start": "Start time for the presence override.",
+                            "persons_force_comfort_end": "End time for the presence override."
+                        }
+                    },
+                    "sec_proximity": {
+                        "name": "Proximity & Geo-Fencing",
+                        "data": {
+                            "proximity_entity": "Proximity Sensor",
+                            "proximity_distance": "Activation Radius",
+                            "proximity_duration": "Confirmation Duration"
+                        },
+                        "data_description": {
+                            "proximity_entity": "HA Proximity integration entity for geo‑fencing.",
+                            "proximity_distance": "Start preheating when person is within this radius (meters).",
+                            "proximity_duration": "Person must be within radius for this long before triggering."
+                        }
+                    },
+                    "sec_presence_sensor": {
+                        "name": "Room Presence Sensor",
+                        "data": {
+                            "presence_sensor": "Room Presence Sensor",
+                            "scheduler_presence": "Presence Schedule",
+                            "presence_reaction_on": "Reaction – Presence Detected",
+                            "presence_reaction_off": "Reaction – Presence Lost"
+                        },
+                        "data_description": {
+                            "presence_sensor": "A binary sensor for room‑level occupancy detection.",
+                            "scheduler_presence": "Schedule that defines when presence detection is active.",
+                            "presence_reaction_on": "Wait this long after detecting presence before switching to Comfort.",
+                            "presence_reaction_off": "Wait this long after losing presence before switching to Eco."
+                        }
+                    }
+                }
+            },
+            "expert_automation": {
+                "title": "5/6 · Behavior & Rules",
+                "description": "Fine‑tune how the system reacts to various conditions: temperature limits, away mode, and manual overrides.",
+                "data": {
+                    "sec_temperature_tweaks": "Temperature Tweaks",
+                    "sec_away_mode": "Away Mode Behavior",
+                    "sec_aggressive_mode": "Aggressive Mode",
+                    "sec_adjustments": "Adjustments (JSON)"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperature_tweaks": {
+                        "name": "Temperature Tweaks",
+                        "data": {
+                            "min_instead_of_off": "Use minimum temp instead of OFF",
+                            "reset_temperature": "Reset temperature on schedule change",
+                            "off_if_above_room_temp": "OFF if target < room temp",
+                            "off_if_nobody_home": "OFF when nobody is home",
+                            "ui_change": "Track dashboard temperature changes",
+                            "physical_change": "Track physical dial changes"
+                        },
+                        "data_description": {
+                            "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
+                            "reset_temperature": "Revert manual overrides when the next schedule block begins.",
+                            "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
+                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
+                            "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
+                            "physical_change": "Detect and remember temperature changes made on the TRV dial."
+                        }
+                    },
+                    "sec_away_mode": {
+                        "name": "Away Mode Behavior",
+                        "data": {
+                            "away_scheduler_mode": "Away: Follow schedule",
+                            "away_offset": "Away Offset Temperature",
+                            "away_presence_mode": "Away: Use presence detection",
+                            "away_ignore_people": "Away: ignore person tracking"
+                        },
+                        "data_description": {
+                            "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
+                            "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
+                            "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
+                            "away_ignore_people": "Do not use person tracking for away mode decisions."
+                        }
+                    },
+                    "sec_aggressive_mode": {
+                        "name": "Aggressive Mode",
+                        "data": {
+                            "aggressive_mode_selector": "Aggressive Mode",
+                            "aggressive_range": "Detection Range (°C)",
+                            "aggressive_offset": "Additional Offset (°C)"
+                        },
+                        "data_description": {
+                            "aggressive_mode_selector": "Boost heating when temperature is far from target.",
+                            "aggressive_range": "Temperature difference that activates aggressive heating.",
+                            "aggressive_offset": "Additional temperature offset during aggressive heating."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Adjustments (JSON)",
+                        "data": {
+                            "adjustments": "Adjustment Mapping (JSON)",
+                            "sync_adjustments": "Sync adjustments (JSON) with entities"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments.",
+                            "sync_adjustments": "Write computed adjustments back to helper entities."
+                        }
+                    }
+                }
+            },
+            "expert_advanced": {
+                "title": "6/6 · Advanced & Protection",
+                "description": "Season switch, valve positioning, frost & liming protection, and system timing.",
+                "data": {
+                    "sec_season_mode": "Season Mode",
+                    "sec_valve_positioning": "Valve Positioning",
+                    "sec_protection": "Protection & Liming",
+                    "sec_timing": "System Timing"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_season_mode": {
+                        "name": "Season Mode",
+                        "data": {
+                            "season_mode_entity": "Season Helper",
+                            "idle_temperature": "Idle Temperature",
+                            "room_temp_threshold_enabled": "Enable room temp threshold",
+                            "room_temp_threshold": "Max Room Temperature"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
+                            "idle_temperature": "Fallback temperature when the automation is inactive.",
+                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
+                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                        }
+                    },
+                    "sec_valve_positioning": {
+                        "name": "Valve Positioning",
+                        "data": {
+                            "valve_mode": "Enable valve positioning",
+                            "valve_diff": "Diff for full opening",
+                            "valve_step": "Valve step size",
+                            "valve_max": "Maximum opening",
+                            "valve_timeout": "Position timeout",
+                            "valve_keyword": "Valve entity keyword"
+                        },
+                        "data_description": {
+                            "valve_mode": "Directly control TRV valve position instead of temperature.",
+                            "valve_diff": "Temperature difference for 100% valve opening.",
+                            "valve_step": "Percentage step size for each valve adjustment.",
+                            "valve_max": "Maximum allowed valve opening percentage.",
+                            "valve_timeout": "Reset valve position after this timeout.",
+                            "valve_keyword": "Only control valves whose entity name contains this keyword."
+                        }
+                    },
+                    "sec_protection": {
+                        "name": "Protection & Liming",
+                        "data": {
+                            "frost_protection_enabled": "Frost Protection",
+                            "frost_protection_temp": "Frost Protection Temperature",
+                            "frost_protection_duration": "Frost protection after",
+                            "liming_protection": "Liming Protection",
+                            "liming_day": "Liming day",
+                            "liming_time": "Liming time",
+                            "liming_duration": "Liming duration",
+                            "liming_in_season": "Liming in season mode too"
+                        },
+                        "data_description": {
+                            "frost_protection_enabled": "Enable or disable automatic frost protection for this room.",
+                            "frost_protection_temp": "Minimum temperature to prevent pipes from freezing.",
+                            "frost_protection_duration": "Activate frost protection after everyone is away for this long.",
+                            "liming_protection": "Enable or disable automatic anti‑liming cycle (valve exercise).",
+                            "liming_day": "Day of the week for the anti‑liming cycle.",
+                            "liming_time": "Time of day for the anti‑liming cycle (HH:MM:SS).",
+                            "liming_duration": "Duration of the anti‑liming cycle in minutes.",
+                            "liming_in_season": "Also run the anti‑liming cycle during season mode."
+                        }
+                    },
+                    "sec_timing": {
+                        "name": "System Timing",
+                        "data": {
+                            "action_delay": "Action Delay",
+                            "sensor_retention": "Startup Grace Period"
+                        },
+                        "data_description": {
+                            "action_delay": "Minimum delay between consecutive TRV commands.",
+                            "sensor_retention": "Duration after HA boot where sensors (windows, persons) fall back to their last known state to prevent false triggers."
+                        }
+                    }
+                }
+            },
+            "expert_climate_schedulers": {
+                "title": "3/6 · Schedules",
+                "description": "Configure schedule helpers.",
+                "data": {
+                    "schedulers": "Schedule Helpers",
+                    "scheduler_selector": "Schedule Selector"
+                },
+                "data_description": {
+                    "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
+                    "scheduler_selector": "Optional entity that selects which schedule is active."
+                }
+            }
+        },
+        "error": {
+            "no_trvs": "Please select at least one thermostat (TRV)."
+        }
+    },
+    "options": {
+        "step": {
+            "expert_hardware": {
+                "title": "1/6 · Devices & Sensors",
+                "description": "Configure the physical hardware in this room: thermostats, temperature sensors, window contacts and outside temperature source.",
+                "data": {
+                    "trvs": "Thermostats (TRVs)",
+                    "temp_sensor": "Room Temperature Sensor",
+                    "sec_window": "Window & Door Contacts",
+                    "sec_outside": "Outside Temperature"
+                },
+                "data_description": {
+                    "trvs": "At least one TRV is required.",
+                    "temp_sensor": "External sensor overrides the TRV's built‑in reading for better accuracy."
+                },
+                "sections": {
+                    "sec_window": {
+                        "name": "Window & Door Contacts",
+                        "data": {
+                            "window_sensors": "Window & Door Sensors",
+                            "window_reaction_open": "Delay – Window Opens",
+                            "window_reaction_close": "Delay – Window Closes",
+                            "window_open_temp": "Ventilation Temperature",
+                            "window_legacy_restore": "Restore previous temperature"
+                        },
+                        "data_description": {
+                            "window_sensors": "Heating pauses automatically when a sensor reports 'open'.",
+                            "window_reaction_open": "Wait this long before lowering the temperature.",
+                            "window_reaction_close": "Wait this long before restoring the temperature.",
+                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
+                            "window_legacy_restore": "If enabled, restore the target temperature that was active before the window was opened."
+                        }
+                    },
+                    "sec_outside": {
+                        "name": "Outside Temperature",
+                        "data": {
+                            "outside_temp_sensor": "Outside Temperature Source",
+                            "outside_temp_threshold": "Climate Threshold (Outside)",
+                            "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
+                            "outside_temp_fallback": "Continue on sensor failure",
+                            "weather_entity": "Weather Entity (Weather Anticipation)"
+                        },
+                        "data_description": {
+                            "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
+                            "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
+                            "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
+                        }
+                    }
+                }
+            },
+            "expert_climate": {
+                "title": "2/6 · Climate & Schedule",
+                "description": "Set target temperatures, choose your scheduling method, and configure thermostat calibration.",
+                "data": {
+                    "sec_temperatures": "Temperatures",
+                    "sec_scheduling": "Scheduling",
+                    "sec_calibration": "Calibration Settings"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperatures": {
+                        "name": "Temperatures",
+                        "data": {
+                            "temp_comfort_static": "Comfort Temperature",
+                            "hvac_mode_comfort": "HVAC Mode at Comfort",
+                            "temp_eco_static": "Eco Temperature",
+                            "hvac_mode_eco": "HVAC Mode at Eco",
+                            "hysteresis": "Hysteresis"
+                        },
+                        "data_description": {
+                            "temp_comfort_static": "Active temperature when someone is home.",
+                            "hvac_mode_comfort": "Which HVAC mode to set on the TRV during Comfort.",
+                            "temp_eco_static": "Energy‑saving temperature for unoccupied periods.",
+                            "hvac_mode_eco": "Which HVAC mode to set on the TRV during Eco.",
+                            "hysteresis": "Tolerance band used when 'Switch TRV off above room temperature' is enabled. The TRV switches off when room temperature exceeds target + hysteresis, and back on when it drops below target − hysteresis."
+                        }
+                    },
+                    "sec_scheduling": {
+                        "name": "Scheduling",
+                        "data": {
+                            "scheduling_mode": "Scheduling Method"
+                        },
+                        "data_description": {
+                            "scheduling_mode": "Choose 'Helper' for schedule entities or 'Calendar' for calendar‑based control."
+                        }
+                    },
+                    "sec_calibration": {
+                        "name": "Calibration Settings",
+                        "data": {
+                            "calibration_mode": "Calibration Mode",
+                            "generic_calibration_limit": "Max. Calibration Limit",
+                            "calibration_delta": "Calibration Delta",
+                            "calibration_step_size": "Step Size",
+                            "calibration_keyword": "Entity Filter Keyword",
+                            "calibration_timeout": "Calibration Interval"
+                        },
+                        "data_description": {
+                            "calibration_mode": "'Native' adjusts the TRV's internal offset; 'Generic' adjusts the target temperature.",
+                            "generic_calibration_limit": "Maximum allowed offset for generic calibration to prevent overheating on sensor failure.",
+                            "calibration_delta": "Minimum temperature difference before a calibration update is sent.",
+                            "calibration_step_size": "Precision of calibration adjustments.",
+                            "calibration_keyword": "Only calibrate entities whose name contains this keyword.",
+                            "calibration_timeout": "How often to recalculate the calibration offset."
+                        }
+                    }
+                }
+            },
+            "expert_climate_calendar": {
+                "title": "3/6 · Calendar Settings",
+                "description": "Fine‑tune how calendar events control this room's heating.",
+                "data": {
+                    "calendar": "Calendar Entities",
+                    "calendar_event": "Event Keywords",
+                    "calendar_room": "Location Filter",
+                    "calendar_scan_interval": "Scan Interval",
+                    "sync_calendar_with_entities": "Sync with Helpers"
+                },
+                "data_description": {
+                    "calendar": "Select one or more calendar entities to watch for events.",
+                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
+                    "calendar_room": "Optional: only respond to events at this location.",
+                    "calendar_scan_interval": "How often to check the calendar for new events.",
+                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards."
+                }
+            },
+            "expert_presence": {
+                "title": "4/6 · Presence & People",
+                "description": "Configure who lives here, how guests are handled, and how the system detects occupancy.",
+                "data": {
+                    "sec_persons": "Persons & Guests",
+                    "sec_proximity": "Proximity & Geo-Fencing",
+                    "sec_presence_sensor": "Room Presence Sensor"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_persons": {
+                        "name": "Persons & Guests",
+                        "data": {
+                            "persons": "Persons & Devices",
+                            "guest_mode": "Guest Mode Entities",
+                            "people_entering_duration": "Arrival Delay",
+                            "people_leaving_duration": "Departure Delay",
+                            "persons_force_comfort": "Presence Forces Comfort",
+                            "persons_force_comfort_start": "Override Start Time",
+                            "persons_force_comfort_end": "Override End Time"
+                        },
+                        "data_description": {
+                            "persons": "Persons whose home/away status affects heating.",
+                            "guest_mode": "When any of these is ON, heating behaves as if someone is home.",
+                            "people_entering_duration": "Grace period before 'arriving home' triggers Comfort.",
+                            "people_leaving_duration": "Grace period before 'leaving home' triggers Eco.",
+                            "persons_force_comfort": "If ON, heating will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
+                            "persons_force_comfort_start": "Start time for the presence override.",
+                            "persons_force_comfort_end": "End time for the presence override."
+                        }
+                    },
+                    "sec_proximity": {
+                        "name": "Proximity & Geo-Fencing",
+                        "data": {
+                            "proximity_entity": "Proximity Sensor",
+                            "proximity_distance": "Activation Radius",
+                            "proximity_duration": "Confirmation Duration"
+                        },
+                        "data_description": {
+                            "proximity_entity": "HA Proximity integration entity for geo‑fencing.",
+                            "proximity_distance": "Start preheating when person is within this radius (meters).",
+                            "proximity_duration": "Person must be within radius for this long before triggering."
+                        }
+                    },
+                    "sec_presence_sensor": {
+                        "name": "Room Presence Sensor",
+                        "data": {
+                            "presence_sensor": "Room Presence Sensor",
+                            "scheduler_presence": "Presence Schedule",
+                            "presence_reaction_on": "Reaction – Presence Detected",
+                            "presence_reaction_off": "Reaction – Presence Lost"
+                        },
+                        "data_description": {
+                            "presence_sensor": "A binary sensor for room‑level occupancy detection.",
+                            "scheduler_presence": "Schedule that defines when presence detection is active.",
+                            "presence_reaction_on": "Wait this long after detecting presence before switching to Comfort.",
+                            "presence_reaction_off": "Wait this long after losing presence before switching to Eco."
+                        }
+                    }
+                }
+            },
+            "expert_automation": {
+                "title": "5/6 · Behavior & Rules",
+                "description": "Fine‑tune how the system reacts to various conditions: temperature limits, away mode, and manual overrides.",
+                "data": {
+                    "sec_temperature_tweaks": "Temperature Tweaks",
+                    "sec_away_mode": "Away Mode Behavior",
+                    "sec_aggressive_mode": "Aggressive Mode",
+                    "sec_adjustments": "Adjustments (JSON)"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperature_tweaks": {
+                        "name": "Temperature Tweaks",
+                        "data": {
+                            "min_instead_of_off": "Use minimum temp instead of OFF",
+                            "reset_temperature": "Reset temperature on schedule change",
+                            "off_if_above_room_temp": "OFF if target < room temp",
+                            "off_if_nobody_home": "OFF when nobody is home",
+                            "ui_change": "Track dashboard temperature changes",
+                            "physical_change": "Track physical dial changes"
+                        },
+                        "data_description": {
+                            "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
+                            "reset_temperature": "Revert manual overrides when the next schedule block begins.",
+                            "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
+                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
+                            "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
+                            "physical_change": "Detect and remember temperature changes made on the TRV dial."
+                        }
+                    },
+                    "sec_away_mode": {
+                        "name": "Away Mode Behavior",
+                        "data": {
+                            "away_scheduler_mode": "Away: Follow schedule",
+                            "away_offset": "Away Offset Temperature",
+                            "away_presence_mode": "Away: Use presence detection",
+                            "away_ignore_people": "Away: ignore person tracking"
+                        },
+                        "data_description": {
+                            "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
+                            "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
+                            "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
+                            "away_ignore_people": "Do not use person tracking for away mode decisions."
+                        }
+                    },
+                    "sec_aggressive_mode": {
+                        "name": "Aggressive Mode",
+                        "data": {
+                            "aggressive_mode_selector": "Aggressive Mode",
+                            "aggressive_range": "Detection Range (°C)",
+                            "aggressive_offset": "Additional Offset (°C)"
+                        },
+                        "data_description": {
+                            "aggressive_mode_selector": "Boost heating when temperature is far from target.",
+                            "aggressive_range": "Temperature difference that activates aggressive heating.",
+                            "aggressive_offset": "Additional temperature offset during aggressive heating."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Adjustments (JSON)",
+                        "data": {
+                            "adjustments": "Adjustment Mapping (JSON)",
+                            "sync_adjustments": "Sync adjustments (JSON) with entities"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments.",
+                            "sync_adjustments": "Write computed adjustments back to helper entities."
+                        }
+                    }
+                }
+            },
+            "expert_advanced": {
+                "title": "6/6 · Advanced & Protection",
+                "description": "Season switch, valve positioning, frost & liming protection, and system timing.",
+                "data": {
+                    "sec_season_mode": "Season Mode",
+                    "sec_valve_positioning": "Valve Positioning",
+                    "sec_protection": "Protection & Liming",
+                    "sec_timing": "System Timing"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_season_mode": {
+                        "name": "Season Mode",
+                        "data": {
+                            "season_mode_entity": "Season Helper",
+                            "idle_temperature": "Idle Temperature",
+                            "room_temp_threshold_enabled": "Enable room temp threshold",
+                            "room_temp_threshold": "Max Room Temperature"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
+                            "idle_temperature": "Fallback temperature when the automation is inactive.",
+                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
+                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                        }
+                    },
+                    "sec_valve_positioning": {
+                        "name": "Valve Positioning",
+                        "data": {
+                            "valve_mode": "Enable valve positioning",
+                            "valve_diff": "Diff for full opening",
+                            "valve_step": "Valve step size",
+                            "valve_max": "Maximum opening",
+                            "valve_timeout": "Position timeout",
+                            "valve_keyword": "Valve entity keyword"
+                        },
+                        "data_description": {
+                            "valve_mode": "Directly control TRV valve position instead of temperature.",
+                            "valve_diff": "Temperature difference for 100% valve opening.",
+                            "valve_step": "Percentage step size for each valve adjustment.",
+                            "valve_max": "Maximum allowed valve opening percentage.",
+                            "valve_timeout": "Reset valve position after this timeout.",
+                            "valve_keyword": "Only control valves whose entity name contains this keyword."
+                        }
+                    },
+                    "sec_protection": {
+                        "name": "Protection & Liming",
+                        "data": {
+                            "frost_protection_enabled": "Frost Protection",
+                            "frost_protection_temp": "Frost Protection Temperature",
+                            "frost_protection_duration": "Frost protection after",
+                            "liming_protection": "Liming Protection",
+                            "liming_day": "Liming day",
+                            "liming_time": "Liming time",
+                            "liming_duration": "Liming duration",
+                            "liming_in_season": "Liming in season too"
+                        },
+                        "data_description": {
+                            "frost_protection_enabled": "Enable or disable automatic frost protection for this room.",
+                            "frost_protection_temp": "Minimum temperature to prevent pipes from freezing.",
+                            "frost_protection_duration": "Activate frost protection after everyone is away for this long.",
+                            "liming_protection": "Enable or disable automatic anti‑liming cycle (valve exercise).",
+                            "liming_day": "Day of the week for the anti‑liming cycle.",
+                            "liming_time": "Time of day for the anti‑liming cycle (HH:MM:SS).",
+                            "liming_duration": "Duration of the anti‑liming cycle in minutes.",
+                            "liming_in_season": "Also run the anti‑liming cycle during season mode."
+                        }
+                    },
+                    "sec_timing": {
+                        "name": "System Timing",
+                        "data": {
+                            "action_delay": "Action Delay",
+                            "sensor_retention": "Startup Grace Period"
+                        },
+                        "data_description": {
+                            "action_delay": "Minimum delay between consecutive TRV commands.",
+                            "sensor_retention": "Duration after HA boot where sensors (windows, persons) fall back to their last known state to prevent false triggers."
+                        }
+                    }
+                }
+            },
+            "expert_climate_schedulers": {
+                "title": "3/6 · Schedules",
+                "description": "Configure schedule helpers.",
+                "data": {
+                    "schedulers": "Schedule Helpers",
+                    "scheduler_selector": "Schedule Selector"
+                },
+                "data_description": {
+                    "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
+                    "scheduler_selector": "Optional entity that selects which schedule is active."
+                }
+            }
+        },
+        "error": {
+            "no_trvs": "Please select at least one thermostat (TRV)."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "status": {
+                "name": "Status"
+            }
+        },
+        "select": {
+            "hvac_mode_comfort": {
+                "name": "HVAC Mode Comfort",
+                "state": {
+                    "heat": "Heating",
+                    "cool": "Cooling",
+                    "heat_cool": "Heat / Cool",
+                    "auto": "Schedule (Auto)",
+                    "off": "Off"
+                }
+            },
+            "hvac_mode_eco": {
+                "name": "HVAC Mode Eco",
+                "state": {
+                    "heat": "Heating",
+                    "cool": "Cooling",
+                    "heat_cool": "Heat / Cool",
+                    "auto": "Schedule (Auto)",
+                    "off": "Off"
+                }
+            }
+        },
+        "number": {
+            "weather_offset": {
+                "name": "Weather Anticipation Offset"
+            },
+            "away_offset": {
+                "name": "Away Offset"
+            },
+            "aggressive_range": {
+                "name": "Aggressive Range"
+            },
+            "aggressive_offset": {
+                "name": "Aggressive Offset"
+            },
+            "frost_protection_temp": {
+                "name": "Frost Protection Temperature"
+            },
+            "temp_comfort_static": {
+                "name": "Comfort Temperature"
+            },
+            "temp_eco_static": {
+                "name": "Eco Temperature"
+            },
+            "window_open_temp": {
+                "name": "Window Open Temperature"
+            },
+            "party_temperature": {
+                "name": "Party Temperature"
+            },
+            "idle_temperature": {
+                "name": "Idle Temperature"
+            },
+            "generic_calibration_limit": {
+                "name": "Calibration Limit"
+            },
+            "max_optimum_start": {
+                "name": "Smart Preheating Max. Duration"
+            },
+            "learned_heating_rate": {
+                "name": "Smart Preheating Learning Rate"
+            }
+        },
+        "switch": {
+            "guest_mode_switch": {
+                "name": "Guest Mode"
+            },
+            "party_mode_switch": {
+                "name": "Party Mode"
+            },
+            "liming_protection": {
+                "name": "Liming Protection"
+            },
+            "frost_protection_enabled": {
+                "name": "Frost Protection"
+            },
+            "automation_active": {
+                "name": "Automation Active"
+            },
+            "manual_override_pause": {
+                "name": "Manual Override (Pause)"
+            },
+            "optimum_start": {
+                "name": "Smart Preheating"
+            },
+            "weather_anticipation": {
+                "name": "Weather Anticipation"
+            },
+            "force_eco_switch": {
+                "name": "Force Eco Temperature"
+            },
+            "force_comfort_switch": {
+                "name": "Force Comfort Temperature"
+            }
+        },
+        "binary_sensor": {
+            "season_mode": {
+                "name": "Season Mode"
+            },
+            "anybody_home": {
+                "name": "Presence (Persons)"
+            },
+            "window_open": {
+                "name": "Window Open"
+            },
+            "away_mode": {
+                "name": "Away Mode"
+            },
+            "presence_active": {
+                "name": "Presence Detected"
+            },
+            "proximity_arrived": {
+                "name": "Proximity Arrived"
+            }
+        }
+    },
+    "selector": {
+        "hvac_mode": {
+            "options": {
+                "heat": "Heating",
+                "cool": "Cooling",
+                "heat_cool": "Heating / Cooling",
+                "auto": "Schedule (Auto)",
+                "off": "Off"
+            }
+        },
+        "scheduling_mode": {
+            "options": {
+                "helper": "Schedule – Helper",
+                "calendar": "Calendar – Integration"
+            }
+        },
+        "calibration_mode": {
+            "options": {
+                "off": "Off",
+                "native": "Native (Internal Offset)",
+                "generic": "Generic (Target Temp)"
+            }
+        },
+        "calibration_step_size": {
+            "options": {
+                "auto": "Auto",
+                "full": "1.0°C",
+                "half": "0.5°C",
+                "precise": "0.1°C"
+            }
+        },
+        "aggressive_mode": {
+            "options": {
+                "off": "Off",
+                "target_temp": "Target Temperature (Boost)",
+                "calibration": "Calibration (Offset)"
+            }
+        },
+        "liming_day": {
+            "options": {
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday",
+                "sun": "Sunday"
+            }
+        }
+    }
+}

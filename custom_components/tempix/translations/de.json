@@ -1,0 +1,911 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Willkommen",
+                "description": "Gib dieser Heizungssteuerung einen eindeutigen Namen.",
+                "data": {
+                    "name": "Name der Steuerung"
+                },
+                "data_description": {
+                    "name": "Beispiel: Wohnzimmer, Büro, Schlafzimmer"
+                }
+            },
+            "expert_hardware": {
+                "title": "1/6 · Geräte & Sensoren",
+                "description": "Konfiguriere die physische Hardware in diesem Raum: Thermostate, Temperatursensoren, Fensterkontakte und Außentemperatur-Quelle.",
+                "data": {
+                    "trvs": "Thermostate (TRVs)",
+                    "temp_sensor": "Raumtemperatur-Sensor",
+                    "sec_window": "Fenster- & Türkontakte",
+                    "sec_outside": "Außentemperatur"
+                },
+                "data_description": {
+                    "trvs": "Mindestens ein TRV ist erforderlich.",
+                    "temp_sensor": "Externer Sensor überschreibt den eingebauten TRV-Messwert für bessere Genauigkeit."
+                },
+                "sections": {
+                    "sec_window": {
+                        "name": "Fenster- & Türkontakte",
+                        "data": {
+                            "window_sensors": "Fenster- & Tür-Sensoren",
+                            "window_reaction_open": "Verzögerung – Fenster öffnet",
+                            "window_reaction_close": "Verzögerung – Fenster schließt",
+                            "window_open_temp": "Lüftungs-Temperatur",
+                            "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
+                        },
+                        "data_description": {
+                            "window_sensors": "Die Heizung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
+                            "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
+                            "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
+                            "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
+                            "window_legacy_restore": "Falls aktiviert, wird die Temperatur auf den Wert vor der Lüftung zurückgesetzt."
+                        }
+                    },
+                    "sec_outside": {
+                        "name": "Außentemperatur",
+                        "data": {
+                            "outside_temp_sensor": "Außentemperatur-Quelle",
+                            "outside_temp_threshold": "Klimaschwelle (Außen)",
+                            "outside_temp_hysteresis": "Hysterese (Außenschwelle)",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterregeln",
+                            "weather_entity": "Wetter-Entität (Wetter-Anticipation)"
+                        },
+                        "data_description": {
+                            "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
+                            "outside_temp_threshold": "Die Klimasteuerung wird deaktiviert, wenn die Außentemperatur diesen Wert über- (Heizen) bzw. unterschreitet (Kühlen).",
+                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Klimasteuerung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
+                            "weather_entity": "Optionale Wetter-Entität für die Wetter-Anticipation. Bei sonnigem oder klarem Wetter wird die Zieltemperatur um den Wetter-Anticipation-Offset reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
+                        }
+                    }
+                }
+            },
+            "expert_climate": {
+                "title": "2/6 · Klima & Zeitplan",
+                "description": "Zieltemperaturen festlegen, Zeitplanungs-Methode wählen und Thermostat-Kalibrierung konfigurieren.",
+                "data": {
+                    "sec_temperatures": "Temperaturen",
+                    "sec_scheduling": "Zeitplan & Steuerung",
+                    "sec_calibration": "Kalibrierungs-Einstellungen"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperatures": {
+                        "name": "Temperaturen",
+                        "data": {
+                            "temp_comfort_static": "Comfort-Temperatur",
+                            "hvac_mode_comfort": "HVAC-Modus bei Comfort",
+                            "temp_eco_static": "Eco-Temperatur",
+                            "hvac_mode_eco": "HVAC-Modus bei Eco",
+                            "hysteresis": "Hysterese"
+                        },
+                        "data_description": {
+                            "temp_comfort_static": "Aktive Temperatur wenn jemand zu Hause ist.",
+                            "hvac_mode_comfort": "Welcher HVAC-Modus am TRV bei Comfort gesetzt wird.",
+                            "temp_eco_static": "Energiespar-Temperatur für unbesetzte Zeiten.",
+                            "hvac_mode_eco": "Welcher HVAC-Modus am TRV bei Eco gesetzt wird.",
+                            "hysteresis": "Toleranzband für die Funktion 'TRV bei Raumtemperatur abschalten'. Der TRV schaltet ab, wenn die Raumtemperatur Sollwert + Hysterese überschreitet, und wieder an, wenn sie unter Sollwert − Hysterese fällt."
+                        }
+                    },
+                    "sec_scheduling": {
+                        "name": "Zeitplan & Steuerung",
+                        "data": {
+                            "scheduling_mode": "Zeitplanungs-Methode"
+                        },
+                        "data_description": {
+                            "scheduling_mode": "Wähle 'Helfer' für Zeitplan-Entitäten oder 'Kalender' für kalenderbasierte Steuerung."
+                        }
+                    },
+                    "sec_calibration": {
+                        "name": "Kalibrierungs-Einstellungen",
+                        "data": {
+                            "calibration_mode": "Kalibrierungs-Modus",
+                            "generic_calibration_limit": "Grenzwert (Generisch)",
+                            "calibration_delta": "Kalibrierungs-Delta",
+                            "calibration_step_size": "Schrittweite",
+                            "calibration_keyword": "Entitäts-Filter-Stichwort",
+                            "calibration_timeout": "Kalibrierungs-Intervall"
+                        },
+                        "data_description": {
+                            "calibration_mode": "'Nativ' passt den internen TRV-Offset an; 'Generisch' passt die Zieltemperatur an.",
+                            "generic_calibration_limit": "Maximaler Offset für generische Kalibrierung, um Überhitzen bei Sensorfehler zu vermeiden.",
+                            "calibration_delta": "Minimale Temperaturdifferenz, bevor eine Kalibrierung gesendet wird.",
+                            "calibration_step_size": "Genauigkeit der Kalibrierungs-Anpassungen.",
+                            "calibration_keyword": "Nur Entitäten kalibrieren, deren Name dieses Stichwort enthält.",
+                            "calibration_timeout": "Wie oft der Kalibrierungs-Offset neu berechnet wird."
+                        }
+                    }
+                }
+            },
+            "expert_climate_calendar": {
+                "title": "3/6 · Kalender-Einstellungen",
+                "description": "Stelle ein, wie Kalender-Events die Heizung dieses Raums steuern.",
+                "data": {
+                    "calendar": "Kalender-Entitäten",
+                    "calendar_event": "Ereignis-Stichwörter",
+                    "calendar_room": "Standort-Filter",
+                    "calendar_scan_interval": "Abfrage-Intervall",
+                    "sync_calendar_with_entities": "Mit Helfern synchronisieren"
+                },
+                "data_description": {
+                    "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
+                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Heizung aus.",
+                    "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
+                    "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
+                    "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben."
+                }
+            },
+            "expert_presence": {
+                "title": "4/6 · Anwesenheit & Personen",
+                "description": "Konfiguriere wer hier wohnt, wie Gäste behandelt werden, und wie das System Belegung erkennt.",
+                "data": {
+                    "sec_persons": "Personen & Gäste",
+                    "sec_proximity": "Näherung & Geo-Fencing",
+                    "sec_presence_sensor": "Raum-Präsenzmelder"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_persons": {
+                        "name": "Personen & Gäste",
+                        "data": {
+                            "persons": "Personen & Geräte",
+                            "guest_mode": "Gäste-Modus Entitäten",
+                            "people_entering_duration": "Ankunfts-Verzögerung",
+                            "people_leaving_duration": "Abfahrts-Verzögerung",
+                            "persons_force_comfort": "Anwesenheit erzwingt Comfort",
+                            "persons_force_comfort_start": "Übersteuerung Startzeit",
+                            "persons_force_comfort_end": "Übersteuerung Endzeit"
+                        },
+                        "data_description": {
+                            "persons": "Personen, deren Anwesenheitsstatus die Heizung beeinflusst.",
+                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich die Heizung so, als wäre jemand zu Hause.",
+                            "people_entering_duration": "Karenzzeit bevor 'Zuhause angekommen' Comfort auslöst.",
+                            "people_leaving_duration": "Karenzzeit bevor 'Haus verlassen' Eco auslöst.",
+                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geheizt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
+                            "persons_force_comfort_start": "Startzeit für die Präsenz-Übersteuerung.",
+                            "persons_force_comfort_end": "Endzeit für die Präsenz-Übersteuerung."
+                        }
+                    },
+                    "sec_proximity": {
+                        "name": "Näherung & Geo-Fencing",
+                        "data": {
+                            "proximity_entity": "Näherungs-Sensor",
+                            "proximity_distance": "Aktivierungs-Radius",
+                            "proximity_duration": "Bestätigungs-Dauer"
+                        },
+                        "data_description": {
+                            "proximity_entity": "HA Proximity-Integrations-Entität für Geo-Fencing.",
+                            "proximity_distance": "Vorheizen starten wenn eine Person innerhalb dieses Radius ist (Meter).",
+                            "proximity_duration": "Person muss so lange im Radius sein, bevor ausgelöst wird."
+                        }
+                    },
+                    "sec_presence_sensor": {
+                        "name": "Raum-Präsenzmelder",
+                        "data": {
+                            "presence_sensor": "Raum-Präsenzmelder",
+                            "scheduler_presence": "Präsenz-Zeitplan",
+                            "presence_reaction_on": "Reaktion – Erkannt",
+                            "presence_reaction_off": "Reaktion – Verloren"
+                        },
+                        "data_description": {
+                            "presence_sensor": "Binärsensor für Raum-Belegungserkennung.",
+                            "scheduler_presence": "Zeitplan, der definiert, wann die Präsenzerkennung aktiv ist.",
+                            "presence_reaction_on": "Wartezeit nach Erkennung von Präsenz vor dem Umschalten auf Comfort.",
+                            "presence_reaction_off": "Wartezeit nach Verlust von Präsenz vor dem Umschalten auf Eco."
+                        }
+                    }
+                }
+            },
+            "expert_automation": {
+                "title": "5/6 · Verhalten & Regeln",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "data": {
+                    "sec_temperature_tweaks": "Zusatz-Verhalten",
+                    "sec_away_mode": "Verhalten bei Abwesenheit",
+                    "sec_aggressive_mode": "Aggressives Heizen",
+                    "sec_adjustments": "Anpassungen (JSON)"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperature_tweaks": {
+                        "name": "Zusatz-Verhalten",
+                        "data": {
+                            "min_instead_of_off": "Minimum statt AUS verwenden",
+                            "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
+                            "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
+                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
+                            "ui_change": "Dashboard-Temperaturänderungen verfolgen",
+                            "physical_change": "Physische Drehrad-Änderungen verfolgen"
+                        },
+                        "data_description": {
+                            "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
+                            "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
+                            "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
+                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
+                            "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
+                            "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
+                        }
+                    },
+                    "sec_away_mode": {
+                        "name": "Verhalten bei Abwesenheit",
+                        "data": {
+                            "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
+                            "away_offset": "Abwesenheits-Temperaturabsenkung",
+                            "away_presence_mode": "Abwesenheit: Präsenz nutzen",
+                            "away_ignore_people": "Abwesend: Personen ignorieren"
+                        },
+                        "data_description": {
+                            "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
+                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
+                            "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
+                            "away_ignore_people": "Personen-Tracking nicht für Abwesenheits-Entscheidungen verwenden."
+                        }
+                    },
+                    "sec_aggressive_mode": {
+                        "name": "Aggressives Heizen",
+                        "data": {
+                            "aggressive_mode_selector": "Aggressiver Modus",
+                            "aggressive_range": "Erkennungs-Bereich (°C)",
+                            "aggressive_offset": "Zusätzlicher Offset (°C)"
+                        },
+                        "data_description": {
+                            "aggressive_mode_selector": "Heizleistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
+                            "aggressive_range": "Temperaturdifferenz die das aggressive Heizen aktiviert.",
+                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Heizen."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Anpassungen (JSON)",
+                        "data": {
+                            "adjustments": "Anpassungs-Mapping (JSON)",
+                            "sync_adjustments": "Anpassungen (JSON) synchronisieren"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen.",
+                            "sync_adjustments": "Berechnete Anpassungen zurück in Helfer-Entitäten schreiben."
+                        }
+                    }
+                }
+            },
+            "expert_advanced": {
+                "title": "6/6 · Erweitert & Schutz",
+                "description": "Saison-Schalter, Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
+                "data": {
+                    "sec_season_mode": "Saison Modus",
+                    "sec_valve_positioning": "Ventilsteuerung (Prozent)",
+                    "sec_protection": "Schutzfunktionen (Frost & Kalk)",
+                    "sec_timing": "System-Timing"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_season_mode": {
+                        "name": "Saison Modus",
+                        "data": {
+                            "season_mode_entity": "Saison-Helfer",
+                            "idle_temperature": "Leerlauf-Temperatur",
+                            "room_temp_threshold_enabled": "Raumtemp-Schwelle aktivieren",
+                            "room_temp_threshold": "Max. Raumtemperatur"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
+                            "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
+                            "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
+                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                        }
+                    },
+                    "sec_valve_positioning": {
+                        "name": "Ventilsteuerung (Prozent)",
+                        "data": {
+                            "valve_mode": "Ventilsteuerung aktivieren",
+                            "valve_diff": "Diff für volle Öffnung",
+                            "valve_step": "Ventil-Schrittweite",
+                            "valve_max": "Maximale Öffnung",
+                            "valve_timeout": "Positions-Timeout",
+                            "valve_keyword": "Ventil-Entitäts-Stichwort"
+                        },
+                        "data_description": {
+                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur.",
+                            "valve_diff": "Temperaturdifferenz für 100% Ventilöffnung.",
+                            "valve_step": "Prozentualer Schritt für jede Ventil-Anpassung.",
+                            "valve_max": "Maximal erlaubter Ventilöffnungs-Prozentsatz.",
+                            "valve_timeout": "Ventilposition nach diesem Timeout zurücksetzen.",
+                            "valve_keyword": "Nur Ventile steuern, deren Entitätsname dieses Stichwort enthält."
+                        }
+                    },
+                    "sec_protection": {
+                        "name": "Schutzfunktionen (Frost & Kalk)",
+                        "data": {
+                            "frost_protection_enabled": "Frostschutz aktivieren",
+                            "frost_protection_temp": "Frostschutz-Temperatur",
+                            "frost_protection_duration": "Frostschutz nach",
+                            "liming_protection": "Entkalkungsschutz aktivieren",
+                            "liming_day": "Entkalkungstag",
+                            "liming_time": "Entkalkungszeit",
+                            "liming_duration": "Entkalkungsdauer",
+                            "liming_in_season": "Auch im Saison Modus entkalken"
+                        },
+                        "data_description": {
+                            "frost_protection_enabled": "Aktiviert den automatischen Frostschutz für diesen Raum.",
+                            "frost_protection_temp": "Mindesttemperatur, um das Einfrieren der Rohre zu verhindern.",
+                            "frost_protection_duration": "Frostschutz aktivieren nachdem alle so lange abwesend sind.",
+                            "liming_protection": "Automatischen Anti-Kalk-Zyklus (Ventilfahrt) aktivieren oder deaktivieren.",
+                            "liming_day": "Wochentag für den Anti-Kalk-Zyklus.",
+                            "liming_time": "Uhrzeit für den Anti-Kalk-Zyklus (HH:MM:SS).",
+                            "liming_duration": "Dauer des Anti-Kalk-Zyklus in Minuten.",
+                            "liming_in_season": "Den Anti-Kalk-Zyklus auch im Saison Modus ausführen."
+                        }
+                    },
+                    "sec_timing": {
+                        "name": "System-Timing",
+                        "data": {
+                            "action_delay": "Aktions-Verzögerung",
+                            "sensor_retention": "Neustart-Puffer"
+                        },
+                        "data_description": {
+                            "action_delay": "Mindest-Verzögerung zwischen aufeinanderfolgenden TRV-Befehlen.",
+                            "sensor_retention": "Zeitraum nach Start, in dem auf letzte Sensorzustände (Personen, Fenster) zurückgegriffen wird, um Falschmeldungen zu verhindern."
+                        }
+                    }
+                }
+            },
+            "expert_climate_schedulers": {
+                "title": "3/6 · Zeitpläne",
+                "description": "Zeitplan-Helfer konfigurieren.",
+                "data": {
+                    "schedulers": "Zeitplan-Helfer",
+                    "scheduler_selector": "Zeitplan-Auswahl"
+                },
+                "data_description": {
+                    "schedulers": "Zeitplan-Helfer-Entitäten für Comfort/Eco-Umschaltung auswählen.",
+                    "scheduler_selector": "Optionale Entität, die auswählt welcher Zeitplan aktiv ist."
+                }
+            }
+        },
+        "error": {
+            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus."
+        }
+    },
+    "options": {
+        "step": {
+            "expert_hardware": {
+                "title": "1/6 · Geräte & Sensoren",
+                "description": "Konfiguriere die physische Hardware in diesem Raum: Thermostate, Temperatursensoren, Fensterkontakte und Außentemperatur-Quelle.",
+                "data": {
+                    "trvs": "Thermostate (TRVs)",
+                    "temp_sensor": "Raumtemperatur-Sensor",
+                    "sec_window": "Fenster- & Türkontakte",
+                    "sec_outside": "Außentemperatur"
+                },
+                "data_description": {
+                    "trvs": "Mindestens ein TRV ist erforderlich.",
+                    "temp_sensor": "Externer Sensor überschreibt den eingebauten TRV-Messwert für bessere Genauigkeit."
+                },
+                "sections": {
+                    "sec_window": {
+                        "name": "Fenster- & Türkontakte",
+                        "data": {
+                            "window_sensors": "Fenster- & Tür-Sensoren",
+                            "window_reaction_open": "Verzögerung – Fenster öffnet",
+                            "window_reaction_close": "Verzögerung – Fenster schließt",
+                            "window_open_temp": "Lüftungs-Temperatur",
+                            "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
+                        },
+                        "data_description": {
+                            "window_sensors": "Die Heizung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
+                            "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
+                            "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
+                            "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
+                            "window_legacy_restore": "Falls aktiviert, wird die Temperatur auf den Wert vor der Lüftung zurückgesetzt."
+                        }
+                    },
+                    "sec_outside": {
+                        "name": "Außentemperatur",
+                        "data": {
+                            "outside_temp_sensor": "Außentemperatur-Quelle",
+                            "outside_temp_threshold": "Klimaschwelle (Außen)",
+                            "outside_temp_hysteresis": "Hysterese (Außenschwelle)",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall weiterregeln",
+                            "weather_entity": "Wetter-Entität (Wetter-Anticipation)"
+                        },
+                        "data_description": {
+                            "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
+                            "outside_temp_threshold": "Die Klimasteuerung wird deaktiviert, wenn die Außentemperatur diesen Wert über- (Heizen) bzw. unterschreitet (Kühlen).",
+                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Klimasteuerung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
+                            "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
+                            "weather_entity": "Optionale Wetter-Entität für die Wetter-Anticipation. Bei sonnigem oder klarem Wetter wird die Zieltemperatur um den Wetter-Anticipation-Offset reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
+                        }
+                    }
+                }
+            },
+            "expert_climate": {
+                "title": "2/6 · Klima & Zeitplan",
+                "description": "Zieltemperaturen festlegen, Zeitplanungs-Methode wählen und Thermostat-Kalibrierung konfigurieren.",
+                "data": {
+                    "sec_temperatures": "Temperaturen",
+                    "sec_scheduling": "Zeitplan & Steuerung",
+                    "sec_calibration": "Kalibrierungs-Einstellungen"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperatures": {
+                        "name": "Temperaturen",
+                        "data": {
+                            "temp_comfort_static": "Comfort-Temperatur",
+                            "hvac_mode_comfort": "HVAC-Modus bei Comfort",
+                            "temp_eco_static": "Eco-Temperatur",
+                            "hvac_mode_eco": "HVAC-Modus bei Eco",
+                            "hysteresis": "Hysterese"
+                        },
+                        "data_description": {
+                            "temp_comfort_static": "Aktive Temperatur wenn jemand zu Hause ist.",
+                            "hvac_mode_comfort": "Welcher HVAC-Modus am TRV bei Comfort gesetzt wird.",
+                            "temp_eco_static": "Energiespar-Temperatur für unbesetzte Zeiten.",
+                            "hvac_mode_eco": "Welcher HVAC-Modus am TRV bei Eco gesetzt wird.",
+                            "hysteresis": "Toleranzband für die Funktion 'TRV bei Raumtemperatur abschalten'. Der TRV schaltet ab, wenn die Raumtemperatur Sollwert + Hysterese überschreitet, und wieder an, wenn sie unter Sollwert − Hysterese fällt."
+                        }
+                    },
+                    "sec_scheduling": {
+                        "name": "Zeitplan & Steuerung",
+                        "data": {
+                            "scheduling_mode": "Zeitplanungs-Methode"
+                        },
+                        "data_description": {
+                            "scheduling_mode": "Wähle 'Helfer' für Zeitplan-Entitäten oder 'Kalender' für kalenderbasierte Steuerung."
+                        }
+                    },
+                    "sec_calibration": {
+                        "name": "Kalibrierungs-Einstellungen",
+                        "data": {
+                            "calibration_mode": "Kalibrierungs-Modus",
+                            "generic_calibration_limit": "Grenzwert (Generisch)",
+                            "calibration_delta": "Kalibrierungs-Delta",
+                            "calibration_step_size": "Schrittweite",
+                            "calibration_keyword": "Entitäts-Filter-Stichwort",
+                            "calibration_timeout": "Kalibrierungs-Intervall"
+                        },
+                        "data_description": {
+                            "calibration_mode": "'Nativ' passt den internen TRV-Offset an; 'Generisch' passt die Zieltemperatur an.",
+                            "generic_calibration_limit": "Maximaler Offset für generische Kalibrierung, um Überhitzen bei Sensorfehler zu vermeiden.",
+                            "calibration_delta": "Minimale Temperaturdifferenz, bevor eine Kalibrierung gesendet wird.",
+                            "calibration_step_size": "Genauigkeit der Kalibrierungs-Anpassungen.",
+                            "calibration_keyword": "Nur Entitäten kalibrieren, deren Name dieses Stichwort enthält.",
+                            "calibration_timeout": "Wie oft der Kalibrierungs-Offset neu berechnet wird."
+                        }
+                    }
+                }
+            },
+            "expert_climate_calendar": {
+                "title": "3/6 · Kalender-Einstellungen",
+                "description": "Stelle ein, wie Kalender-Events die Heizung dieses Raums steuern.",
+                "data": {
+                    "calendar": "Kalender-Entitäten",
+                    "calendar_event": "Ereignis-Stichwörter",
+                    "calendar_room": "Standort-Filter",
+                    "calendar_scan_interval": "Abfrage-Intervall",
+                    "sync_calendar_with_entities": "Mit Helfern synchronisieren"
+                },
+                "data_description": {
+                    "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
+                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Heizung aus.",
+                    "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
+                    "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
+                    "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben."
+                }
+            },
+            "expert_presence": {
+                "title": "4/6 · Anwesenheit & Personen",
+                "description": "Konfiguriere wer hier wohnt, wie Gäste behandelt werden, und wie das System Belegung erkennt.",
+                "data": {
+                    "sec_persons": "Personen & Gäste",
+                    "sec_proximity": "Näherung & Geo-Fencing",
+                    "sec_presence_sensor": "Raum-Präsenzmelder"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_persons": {
+                        "name": "Personen & Gäste",
+                        "data": {
+                            "persons": "Personen & Geräte",
+                            "guest_mode": "Gäste-Modus Entitäten",
+                            "people_entering_duration": "Ankunfts-Verzögerung",
+                            "people_leaving_duration": "Abfahrts-Verzögerung",
+                            "persons_force_comfort": "Anwesenheit erzwingt Comfort",
+                            "persons_force_comfort_start": "Übersteuerung Startzeit",
+                            "persons_force_comfort_end": "Übersteuerung Endzeit"
+                        },
+                        "data_description": {
+                            "persons": "Personen, deren Anwesenheitsstatus die Heizung beeinflusst.",
+                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich die Heizung so, als wäre jemand zu Hause.",
+                            "people_entering_duration": "Karenzzeit bevor 'Zuhause angekommen' Comfort auslöst.",
+                            "people_leaving_duration": "Karenzzeit bevor 'Haus verlassen' Eco auslöst.",
+                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geheizt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
+                            "persons_force_comfort_start": "Startzeit für die Präsenz-Übersteuerung.",
+                            "persons_force_comfort_end": "Endzeit für die Präsenz-Übersteuerung."
+                        }
+                    },
+                    "sec_proximity": {
+                        "name": "Näherung & Geo-Fencing",
+                        "data": {
+                            "proximity_entity": "Näherungs-Sensor",
+                            "proximity_distance": "Aktivierungs-Radius",
+                            "proximity_duration": "Bestätigungs-Dauer"
+                        },
+                        "data_description": {
+                            "proximity_entity": "HA Proximity-Integrations-Entität für Geo-Fencing.",
+                            "proximity_distance": "Vorheizen starten wenn eine Person innerhalb dieses Radius ist (Meter).",
+                            "proximity_duration": "Person muss so lange im Radius sein, bevor ausgelöst wird."
+                        }
+                    },
+                    "sec_presence_sensor": {
+                        "name": "Raum-Präsenzmelder",
+                        "data": {
+                            "presence_sensor": "Raum-Präsenzmelder",
+                            "scheduler_presence": "Präsenz-Zeitplan",
+                            "presence_reaction_on": "Reaktion – Erkannt",
+                            "presence_reaction_off": "Reaktion – Verloren"
+                        },
+                        "data_description": {
+                            "presence_sensor": "Binärsensor für Raum-Belegungserkennung.",
+                            "scheduler_presence": "Zeitplan, der definiert, wann die Präsenzerkennung aktiv ist.",
+                            "presence_reaction_on": "Wartezeit nach Erkennung von Präsenz vor dem Umschalten auf Comfort.",
+                            "presence_reaction_off": "Wartezeit nach Verlust von Präsenz vor dem Umschalten auf Eco."
+                        }
+                    }
+                }
+            },
+            "expert_automation": {
+                "title": "5/6 · Verhalten & Regeln",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "data": {
+                    "sec_temperature_tweaks": "Zusatz-Verhalten",
+                    "sec_away_mode": "Verhalten bei Abwesenheit",
+                    "sec_aggressive_mode": "Aggressives Heizen",
+                    "sec_adjustments": "Anpassungen (JSON)"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_temperature_tweaks": {
+                        "name": "Zusatz-Verhalten",
+                        "data": {
+                            "min_instead_of_off": "Minimum statt AUS verwenden",
+                            "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
+                            "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
+                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
+                            "ui_change": "Dashboard-Temperaturänderungen verfolgen",
+                            "physical_change": "Physische Drehrad-Änderungen verfolgen"
+                        },
+                        "data_description": {
+                            "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
+                            "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
+                            "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
+                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
+                            "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
+                            "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
+                        }
+                    },
+                    "sec_away_mode": {
+                        "name": "Verhalten bei Abwesenheit",
+                        "data": {
+                            "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
+                            "away_offset": "Abwesenheits-Temperaturabsenkung",
+                            "away_presence_mode": "Abwesenheit: Präsenz nutzen",
+                            "away_ignore_people": "Abwesend: Personen ignorieren"
+                        },
+                        "data_description": {
+                            "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
+                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
+                            "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
+                            "away_ignore_people": "Personen-Tracking nicht für Abwesenheits-Entscheidungen verwenden."
+                        }
+                    },
+                    "sec_aggressive_mode": {
+                        "name": "Aggressives Heizen",
+                        "data": {
+                            "aggressive_mode_selector": "Aggressiver Modus",
+                            "aggressive_range": "Erkennungs-Bereich (°C)",
+                            "aggressive_offset": "Zusätzlicher Offset (°C)"
+                        },
+                        "data_description": {
+                            "aggressive_mode_selector": "Heizleistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
+                            "aggressive_range": "Temperaturdifferenz die das aggressive Heizen aktiviert.",
+                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Heizen."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Anpassungen (JSON)",
+                        "data": {
+                            "adjustments": "Anpassungs-Mapping (JSON)",
+                            "sync_adjustments": "Anpassungen (JSON) synchronisieren"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen.",
+                            "sync_adjustments": "Berechnete Anpassungen zurück in Helfer-Entitäten schreiben."
+                        }
+                    }
+                }
+            },
+            "expert_advanced": {
+                "title": "6/6 · Erweitert & Schutz",
+                "description": "Saison-Schalter, Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
+                "data": {
+                    "sec_season_mode": "Saison Modus",
+                    "sec_valve_positioning": "Ventilsteuerung (Prozent)",
+                    "sec_protection": "Schutzfunktionen (Frost & Kalk)",
+                    "sec_timing": "System-Timing"
+                },
+                "data_description": {},
+                "sections": {
+                    "sec_season_mode": {
+                        "name": "Saison Modus",
+                        "data": {
+                            "season_mode_entity": "Saison-Helfer",
+                            "idle_temperature": "Leerlauf-Temperatur",
+                            "room_temp_threshold_enabled": "Raumtemp-Schwelle aktivieren",
+                            "room_temp_threshold": "Max. Raumtemperatur"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
+                            "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
+                            "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
+                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                        }
+                    },
+                    "sec_valve_positioning": {
+                        "name": "Ventilsteuerung (Prozent)",
+                        "data": {
+                            "valve_mode": "Ventilsteuerung aktivieren",
+                            "valve_diff": "Diff for volle Öffnung",
+                            "valve_step": "Ventil-Schrittweite",
+                            "valve_max": "Maximale Öffnung",
+                            "valve_timeout": "Positions-Timeout",
+                            "valve_keyword": "Ventil-Entitäts-Stichwort"
+                        },
+                        "data_description": {
+                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur.",
+                            "valve_diff": "Temperaturdifferenz für 100% Ventilöffnung.",
+                            "valve_step": "Prozentualer Schritt für jede Ventil-Anpassung.",
+                            "valve_max": "Maximal erlaubtver Ventilöffnungs-Prozentsatz.",
+                            "valve_timeout": "Ventilposition nach diesem Timeout zurücksetzen.",
+                            "valve_keyword": "Nur Ventile steuern, deren Entitätsname dieses Stichwort enthält."
+                        }
+                    },
+                    "sec_protection": {
+                        "name": "Schutzfunktionen (Frost & Kalk)",
+                        "data": {
+                            "frost_protection_enabled": "Frostschutz aktivieren",
+                            "frost_protection_temp": "Frostschutz-Temperatur",
+                            "frost_protection_duration": "Frostschutz nach",
+                            "liming_protection": "Entkalkungsschutz aktivieren",
+                            "liming_day": "Entkalkungstag",
+                            "liming_time": "Entkalkungszeit",
+                            "liming_duration": "Entkalkungsdauer",
+                            "liming_in_season": "Auch im Saison Modus entkalken"
+                        },
+                        "data_description": {
+                            "frost_protection_enabled": "Aktiviert den automatischen Frostschutz für diesen Raum.",
+                            "frost_protection_temp": "Mindesttemperatur, um das Einfrieren der Rohre zu verhindern.",
+                            "frost_protection_duration": "Frostschutz aktivieren nachdem alle so lange abwesend sind.",
+                            "liming_protection": "Automatischen Anti-Kalk-Zyklus (Ventilfahrt) aktivieren oder deaktivieren.",
+                            "liming_day": "Wochentag für den Anti-Kalk-Zyklus.",
+                            "liming_time": "Uhrzeit für den Anti-Kalk-Zyklus (HH:MM:SS).",
+                            "liming_duration": "Dauer des Anti-Kalk-Zyklus in Minuten.",
+                            "liming_in_season": "Den Anti-Kalk-Zyklus auch im Saison Modus ausführen."
+                        }
+                    },
+                    "sec_timing": {
+                        "name": "System-Timing",
+                        "data": {
+                            "action_delay": "Aktions-Verzögerung",
+                            "sensor_retention": "Neustart-Puffer"
+                        },
+                        "data_description": {
+                            "action_delay": "Mindest-Verzögerung zwischen aufeinanderfolgenden TRV-Befehlen.",
+                            "sensor_retention": "Zeitraum nach Start, in dem auf letzte Sensorzustände (Personen, Fenster) zurückgegriffen wird, um Falschmeldungen zu verhindern."
+                        }
+                    }
+                }
+            },
+            "expert_climate_schedulers": {
+                "title": "3/6 · Zeitpläne",
+                "description": "Zeitplan-Helfer konfigurieren.",
+                "data": {
+                    "schedulers": "Zeitplan-Helfer",
+                    "scheduler_selector": "Zeitplan-Auswahl"
+                },
+                "data_description": {
+                    "schedulers": "Zeitplan-Helfer-Entitäten für Comfort/Eco-Umschaltung auswählen.",
+                    "scheduler_selector": "Optionale Entität, die auswählt welcher Zeitplan aktiv ist."
+                }
+            }
+        },
+        "error": {
+            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "status": {
+                "name": "Status",
+                "state": {
+                    "uncertain": "Wartet",
+                    "paused": "Pausiert",
+                    "idle": "Leerlauf",
+                    "comfort": "Comfort",
+                    "eco": "Eco",
+                    "window_open": "Fenster offen",
+                    "party_mode": "Party-Modus",
+                    "frost_protection": "Frostschutz",
+                    "liming_protection": "Entkalkung",
+                    "away": "Abwesend",
+                    "inactive": "Inaktiv"
+                }
+            }
+        },
+        "select": {
+            "hvac_mode_comfort": {
+                "name": "HVAC-Modus Comfort",
+                "state": {
+                    "heat": "Heizen",
+                    "cool": "Kühlen",
+                    "heat_cool": "Heizen / Kühlen",
+                    "auto": "Zeitplan (Auto)",
+                    "off": "Aus"
+                }
+            },
+            "hvac_mode_eco": {
+                "name": "HVAC-Modus Eco",
+                "state": {
+                    "heat": "Heizen",
+                    "cool": "Kühlen",
+                    "heat_cool": "Heizen / Kühlen",
+                    "auto": "Zeitplan (Auto)",
+                    "off": "Aus"
+                }
+            }
+        },
+        "number": {
+            "weather_offset": {
+                "name": "Wettervorhersage Offset"
+            },
+            "away_offset": {
+                "name": "Abwesenheits-Absenkung"
+            },
+            "aggressive_range": {
+                "name": "Aggressiver Bereich"
+            },
+            "aggressive_offset": {
+                "name": "Aggressiver Offset"
+            },
+            "frost_protection_temp": {
+                "name": "Frostschutz-Temperatur"
+            },
+            "temp_comfort_static": {
+                "name": "Comfort-Temperatur"
+            },
+            "temp_eco_static": {
+                "name": "Eco-Temperatur"
+            },
+            "window_open_temp": {
+                "name": "Fenster-offen Temperatur"
+            },
+            "party_temperature": {
+                "name": "Party-Temperatur"
+            },
+            "idle_temperature": {
+                "name": "Leerlauf-Temperatur"
+            },
+            "generic_calibration_limit": {
+                "name": "Kalibrierungs-Limit"
+            },
+            "max_optimum_start": {
+                "name": "Intelligentes Vorheizen Max. Dauer"
+            },
+            "learned_heating_rate": {
+                "name": "Intelligentes Vorheizen Lernrate (°C/min)"
+            }
+        },
+        "switch": {
+            "guest_mode_switch": {
+                "name": "Gäste-Modus"
+            },
+            "party_mode_switch": {
+                "name": "Party-Modus"
+            },
+            "liming_protection": {
+                "name": "Entkalkungsschutz"
+            },
+            "frost_protection_enabled": {
+                "name": "Frostschutz"
+            },
+            "automation_active": {
+                "name": "Automatisierung Aktiv"
+            },
+            "manual_override_pause": {
+                "name": "Manuelle Unterbrechung (Pause)"
+            },
+            "optimum_start": {
+                "name": "Intelligentes Vorheizen"
+            },
+            "weather_anticipation": {
+                "name": "Wettervorhersage"
+            },
+            "force_eco_switch": {
+                "name": "Force Eco Temperatur"
+            },
+            "force_comfort_switch": {
+                "name": "Force Comfort Temperatur"
+            }
+        },
+        "binary_sensor": {
+            "season_mode": {
+                "name": "Saison Modus"
+            },
+            "anybody_home": {
+                "name": "Anwesenheit (Personen)"
+            },
+            "window_open": {
+                "name": "Fenster offen"
+            },
+            "away_mode": {
+                "name": "Abwesenheits-Modus"
+            },
+            "presence_active": {
+                "name": "Präsenz erkannt"
+            },
+            "proximity_arrived": {
+                "name": "Näherung erreicht"
+            }
+        }
+    },
+    "selector": {
+        "hvac_mode": {
+            "options": {
+                "heat": "Heizen",
+                "cool": "Kühlen",
+                "heat_cool": "Heizen / Kühlen",
+                "auto": "Auto",
+                "off": "Aus"
+            }
+        },
+        "scheduling_mode": {
+            "options": {
+                "helper": "Zeitplan – Helfer",
+                "calendar": "Kalender – Integration"
+            }
+        },
+        "calibration_mode": {
+            "options": {
+                "off": "Aus",
+                "native": "Nativ (Geräte-intern)",
+                "generic": "Generisch (Ziel-Temperatur)"
+            }
+        },
+        "calibration_step_size": {
+            "options": {
+                "auto": "Auto",
+                "full": "1.0°C",
+                "half": "0.5°C",
+                "precise": "0.1°C"
+            }
+        },
+        "aggressive_mode": {
+            "options": {
+                "off": "Aus",
+                "target_temp": "Ziel-Temperatur (Boost)",
+                "calibration": "Kalibrierung (Offset)"
+            }
+        },
+        "liming_day": {
+            "options": {
+                "mon": "Montag",
+                "tue": "Dienstag",
+                "wed": "Mittwoch",
+                "thu": "Donnerstag",
+                "fri": "Freitag",
+                "sat": "Samstag",
+                "sun": "Sonntag"
+            }
+        }
+    }
+}

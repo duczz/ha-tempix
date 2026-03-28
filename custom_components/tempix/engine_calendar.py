@@ -78,24 +78,57 @@ class CalendarMixin:
 
         return self._process_event_list(state_events, active_only=active_only, use_at_state=True)
 
-    def _get_delegated_event(self, cal_id: str, day_name: str) -> dict[str, Any] | None:
-        """Find the best event matching the weekday on a specific calendar."""
-        if not self._calendar_events or cal_id not in self._calendar_events:
+    def _get_delegated_event(self, source_cal_id: str | None, day_name: str) -> dict[str, Any] | None:
+        """Find delegated event for a weekday.
+
+        Search order: source calendar first, then all room calendars.
+        Among candidates (after room filter): longest duration wins.
+        """
+        if not self._calendar_events:
             return None
 
-        events = self._calendar_events.get(cal_id, [])
-        if not events:
+        # Build search order: source calendar first, then remaining config.calendar entries
+        search_order: list[str] = []
+        if source_cal_id and source_cal_id in self._calendar_events:
+            search_order.append(source_cal_id)
+        for cal_id in self.config.calendar:
+            if cal_id not in search_order and cal_id in self._calendar_events:
+                search_order.append(cal_id)
+
+        # Collect all matching weekday events
+        candidates: list[dict] = []
+        for cal_id in search_order:
+            for ev in self._calendar_events.get(cal_id, []):
+                start_dt = self._parse_dt(ev.get("start_time") or ev.get("start"))
+                if start_dt and start_dt.strftime("%a").lower() == day_name:
+                    ev["calendar_id"] = cal_id
+                    candidates.append(ev)
+
+        if not candidates:
             return None
 
-        delegated_events = []
-        for ev in events:
-            start_dt = self._parse_dt(ev.get("start_time") or ev.get("start"))
-            if start_dt and start_dt.strftime("%a").lower() == day_name:
-                delegated_events.append(ev)
+        # Apply room filter
+        room_filter = self.config.calendar_room
+        if room_filter:
+            room_filters = [rf.strip().lower() for rf in re.split(r"[,;]", room_filter) if rf.strip()]
+            filtered = [
+                ev for ev in candidates
+                if any(
+                    rf in loc
+                    for rf in room_filters
+                    for loc in ([l.strip().lower() for l in re.split(r"[,;]", (ev.get("location") or "")) if l.strip()] or [""])
+                )
+            ]
+            if filtered:
+                candidates = filtered
 
-        if delegated_events:
-            return self._process_event_list(delegated_events, active_only=False)
-        return None
+        # Pick longest duration
+        def _duration(ev: dict) -> float:
+            s = self._parse_dt(ev.get("start_time") or ev.get("start"))
+            e = self._parse_dt(ev.get("end_time") or ev.get("end"))
+            return (e - s).total_seconds() if s and e else 0.0
+
+        return max(candidates, key=_duration)
 
     def _process_event_list(self, events: list[dict], active_only: bool = True, use_at_state: bool = False) -> dict | None:
         """Find the best matching event from a list (filter + priority)."""
@@ -352,28 +385,26 @@ class CalendarMixin:
             if time_match:
                 tags["time"] = f"{time_match.group(1)} - {time_match.group(2)}"
 
-            day_match = re.search(r"use_day:\s*(\w+)(?:\s*@([\w.]+))?", description, re.IGNORECASE)
+            day_match = re.search(r"use_day:\s*(\w+)", description, re.IGNORECASE)
             if day_match:
                 day_str = day_match.group(1).title()
                 day_map = {
                     "Monday": "mon", "Tuesday": "tue", "Wednesday": "wed",
                     "Thursday": "thu", "Friday": "fri", "Saturday": "sat", "Sunday": "sun",
+                    "Montag": "mon", "Dienstag": "tue", "Mittwoch": "wed",
+                    "Donnerstag": "thu", "Freitag": "fri", "Samstag": "sat", "Sonntag": "sun",
                 }
                 tags["use_day"] = day_map.get(day_str, day_str[:3].lower())
-                if day_match.group(2):
-                    tags["delegate_calendar"] = day_match.group(2).strip()
 
-            sched_match = re.search(r"use_scheduler:\s*([^@\n]+)(?:\s*@([\w.]+))?", description, re.IGNORECASE)
+            sched_match = re.search(r"use_scheduler:\s*([^\n]+)", description, re.IGNORECASE)
             if sched_match:
                 tags["use_scheduler"] = sched_match.group(1).strip()
-                if sched_match.group(2):
-                    tags["delegate_calendar"] = sched_match.group(2).strip()
 
         # Handle Inheritance
-        delegate_cal = tags.get("delegate_calendar")
         forced_day = tags.get("use_day")
-        if delegate_cal and forced_day:
-            delegated_event = self._get_delegated_event(delegate_cal, forced_day)
+        if forced_day:
+            source_cal_id = event.get("calendar_id") if event else None
+            delegated_event = self._get_delegated_event(source_cal_id, forced_day)
             if delegated_event:
                 parent_tags = self.get_calendar_tags(event=delegated_event, active_only=False, depth=depth + 1)
                 for k, v in parent_tags.items():

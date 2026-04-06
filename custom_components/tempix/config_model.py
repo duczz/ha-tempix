@@ -123,6 +123,8 @@ class TempixConfig:
     force_eco_switch: bool = False
     party_mode_switch: bool = False
     party_temperature: float | None = None
+    vacation_mode_switch: bool = False
+    vacation_temperature: float | None = None
 
     # ── Temperature Tweaks ───────────────────────────────────────────────
     min_instead_of_off: bool = False
@@ -240,6 +242,7 @@ class TempixConfig:
         g = raw.get
 
         party_temp = g("party_temperature")
+        vacation_temp = g("vacation_temperature")
 
         return cls(
             # Identity
@@ -288,6 +291,10 @@ class TempixConfig:
             party_mode_switch=bool(g("party_mode_switch", False)),
             party_temperature=(
                 float(party_temp) if party_temp is not None else None
+            ),
+            vacation_mode_switch=bool(g("vacation_mode_switch", False)),
+            vacation_temperature=(
+                float(vacation_temp) if vacation_temp is not None else None
             ),
             # Temperature Tweaks
             min_instead_of_off=bool(g("min_instead_of_off", False)),

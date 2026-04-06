@@ -71,6 +71,9 @@ CONF_FORCE_ECO_SWITCH = "force_eco_switch"
 CONF_PARTY_MODE_SWITCH = "party_mode_switch"
 CONF_PARTY_TEMPERATURE = "party_temperature"
 
+CONF_VACATION_MODE_SWITCH = "vacation_mode_switch"
+CONF_VACATION_TEMPERATURE = "vacation_temperature"
+
 
 # 9. Temperature Tweaks
 CONF_MIN_INSTEAD_OF_OFF = "min_instead_of_off"
@@ -179,6 +182,7 @@ DEFAULT_COMFORT_TEMP = 22.0
 DEFAULT_ECO_TEMP = 19.0
 DEFAULT_FROST_TEMP = 5.0
 DEFAULT_PARTY_TEMP = 18.0
+DEFAULT_VACATION_TEMP = 15.0
 DEFAULT_OUTSIDE_THRESHOLD = 15.0
 DEFAULT_OUTSIDE_HYSTERESIS = 1.0
 DEFAULT_ROOM_THRESHOLD = 18.0
@@ -252,7 +256,7 @@ class HeatingState(Enum):
 
     Priority order (highest wins):
         MANUAL_OVERRIDE > PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN >
-        LIMING > PARTY > FORCE_COMFORT > FORCE_ECO > ADJUSTMENT >
+        LIMING > VACATION > PARTY > FORCE_COMFORT > FORCE_ECO > ADJUSTMENT >
         SMART_PREHEATING > AWAY > COMFORT > ECO
     """
     MANUAL_OVERRIDE = "manual_override"
@@ -261,6 +265,7 @@ class HeatingState(Enum):
     FROST_PROTECTION = "frost_protection"
     WINDOW_OPEN = "window_open"
     LIMING = "liming"
+    VACATION = "vacation"
     PARTY = "party"
     FORCE_COMFORT = "force_comfort"
     FORCE_ECO = "force_eco"

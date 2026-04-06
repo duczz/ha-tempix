@@ -411,6 +411,10 @@ class ScheduleMixin:
         if self.is_liming_time():
             return HeatingState.LIMING
 
+        is_vacation, _ = self.is_vacation_mode()
+        if is_vacation:
+            return HeatingState.VACATION
+
         is_party, _ = self.check_party_mode()
         if is_party:
             return HeatingState.PARTY

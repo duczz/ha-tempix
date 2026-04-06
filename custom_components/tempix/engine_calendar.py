@@ -377,6 +377,14 @@ class CalendarMixin:
                 except ValueError:
                     pass
 
+            vacation_match = re.search(r"vacation:\s*([\d.]+)", description, re.IGNORECASE)
+            if vacation_match:
+                try:
+                    tags["comfort"] = max(DEFAULT_MIN_TEMP, min(DEFAULT_MAX_TEMP, float(vacation_match.group(1))))
+                    tags["vacation"] = True
+                except ValueError:
+                    pass
+
             hvac_match = re.search(r"hvac:\s*(\w+)", description, re.IGNORECASE)
             if hvac_match:
                 tags["hvac"] = hvac_match.group(1).lower()

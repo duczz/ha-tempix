@@ -203,11 +203,10 @@ def _get_trv_target_temperature(coordinator, trv_id: str) -> float | None:
                 temp = change.get("temperature")
                 if temp is not None:
                     return float(temp)
-    
+
     # Fallback to current state
     state = coordinator.hass.states.get(trv_id)
     if state:
-        # Most TRVs use 'temperature' attribute for target
         temp = state.attributes.get("temperature")
         if temp is not None:
             return float(temp)
@@ -248,6 +247,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         engine = self._engine
+        is_vacation, _ = engine.is_vacation_mode()
         is_party, _ = engine.check_party_mode()
         adj = engine.get_active_adjustment()
 
@@ -265,6 +265,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
             "proximity_arrived": engine.check_proximity_arrived(),
             "proximity_towards": engine.check_proximity_towards(),
             "window_open": engine.is_window_open(),
+            "vacation_mode": is_vacation,
             "party_mode": is_party,
             "guest_mode": engine.is_guest_mode(),
             "away": engine.is_away(),

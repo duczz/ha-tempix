@@ -192,14 +192,18 @@ class CalibrationMixin:
             if is_force_comfort:
                 valve_temp = max_temp
 
-            valve_temp = max(min_temp, min(max_temp, round(valve_temp, 1)))
+            # Skip clamping and temperature when turning off — some TRVs (e.g. Comet DECT)
+            # report min_temp (e.g. 8°C) as their target when off. Sending temperature
+            # alongside hvac_mode=off would cause the target sensor to bounce between
+            # min_temp and the actual setpoint.
+            if valve_mode != "off":
+                valve_temp = max(min_temp, min(max_temp, round(valve_temp, 1)))
 
-            if cur_mode != valve_mode or cur_temp != valve_temp:
-                changes.append({
-                    "entity_id": trv_id,
-                    "hvac_mode": valve_mode,
-                    "temperature": valve_temp,
-                })
+            if cur_mode != valve_mode or (valve_mode != "off" and cur_temp != valve_temp):
+                change = {"entity_id": trv_id, "hvac_mode": valve_mode}
+                if valve_mode != "off":
+                    change["temperature"] = valve_temp
+                changes.append(change)
 
         return changes, generic_offsets
 

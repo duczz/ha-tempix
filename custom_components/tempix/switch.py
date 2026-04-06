@@ -14,6 +14,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from custom_components.tempix.const import (
     DOMAIN,
     CONF_PARTY_MODE_SWITCH,
+    CONF_VACATION_MODE_SWITCH,
     CONF_GUEST_MODE_SWITCH,
     CONF_AUTOMATION_ACTIVE,
     CONF_MANUAL_OVERRIDE_PAUSE,
@@ -43,6 +44,10 @@ async def async_setup_entry(
         TempixSwitch(
             coordinator, entry,
             CONF_PARTY_MODE_SWITCH, "Party Mode", "mdi:party-popper"
+        ),
+        TempixSwitch(
+            coordinator, entry,
+            CONF_VACATION_MODE_SWITCH, "Vacation Mode", "mdi:airplane"
         ),
         TempixSwitch(
             coordinator, entry,

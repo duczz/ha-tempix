@@ -792,6 +792,9 @@
             "party_temperature": {
                 "name": "Party-Temperatur"
             },
+            "vacation_temperature": {
+                "name": "Urlaubs-Temperatur"
+            },
             "idle_temperature": {
                 "name": "Leerlauf-Temperatur"
             },
@@ -811,6 +814,9 @@
             },
             "party_mode_switch": {
                 "name": "Party-Modus"
+            },
+            "vacation_mode_switch": {
+                "name": "Urlaubs-Modus"
             },
             "liming_protection": {
                 "name": "Entkalkungsschutz"

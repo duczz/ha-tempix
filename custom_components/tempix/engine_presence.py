@@ -291,6 +291,15 @@ class PresenceMixin:
             return True, self.config.party_temperature
         return False, None
 
+    def is_vacation_mode(self) -> tuple[bool, float | None]:
+        """Return ``(is_active, vacation_temperature_or_None)``."""
+        if self.config.vacation_mode_switch:
+            return True, self.config.vacation_temperature
+        tags = self.get_calendar_tags()
+        if tags.get("vacation"):
+            return True, tags.get("comfort")
+        return False, None
+
     # ── force max / eco ──────────────────────────────────────────────────────
 
     def is_force_comfort_temp(self) -> bool:

@@ -6,6 +6,7 @@ Comfort / eco / window temperature resolution and the main
 """
 from __future__ import annotations
 
+from custom_components.tempix.const import DEFAULT_VACATION_TEMP
 
 
 class TemperatureMixin:
@@ -73,6 +74,13 @@ class TemperatureMixin:
                 frost_min = self.config.frost_protection_temp
                 return max(frost_min, window_temp) if window_temp > 0 else frost_min
             return window_temp if window_temp > 0 else 0.0
+
+        is_vacation, vacation_temp = self.is_vacation_mode()
+        if is_vacation:
+            vt = vacation_temp if vacation_temp is not None else DEFAULT_VACATION_TEMP
+            if self.config.frost_protection_enabled:
+                return max(self.config.frost_protection_temp, vt)
+            return vt
 
         is_party, party_temp = self.check_party_mode()
         if is_party:

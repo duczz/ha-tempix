@@ -19,9 +19,11 @@ from custom_components.tempix.const import (
     CONF_TEMPERATURE_COMFORT_STATIC,
     CONF_TEMPERATURE_ECO_STATIC,
     CONF_PARTY_TEMPERATURE,
+    CONF_VACATION_TEMPERATURE,
     CONF_WEATHER_OFFSET,
     CONF_MAX_OPTIMUM_START,
     CONF_LEARNED_HEATING_RATE,
+    DEFAULT_VACATION_TEMP,
 )
 
 
@@ -52,6 +54,11 @@ async def async_setup_entry(
             coordinator, entry,
             CONF_PARTY_TEMPERATURE, "Party Temperature", "mdi:party-popper",
             5.0, 35.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
+        ),
+        TempixNumber(
+            coordinator, entry,
+            CONF_VACATION_TEMPERATURE, "Vacation Temperature", "mdi:airplane",
+            5.0, 30.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
@@ -120,6 +127,8 @@ class TempixNumber(NumberEntity, RestoreEntity):
         """Return the current value."""
         val = getattr(self._coordinator.config, self._key, None)
         if val is None:
+            if self._key == CONF_VACATION_TEMPERATURE:
+                return DEFAULT_VACATION_TEMP
             return 0.0
         if isinstance(val, timedelta):
             return val.total_seconds() / 60.0

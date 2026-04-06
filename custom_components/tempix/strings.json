@@ -779,6 +779,9 @@
             "party_temperature": {
                 "name": "Party Temperature"
             },
+            "vacation_temperature": {
+                "name": "Vacation Temperature"
+            },
             "idle_temperature": {
                 "name": "Idle Temperature"
             },
@@ -798,6 +801,9 @@
             },
             "party_mode_switch": {
                 "name": "Party Mode"
+            },
+            "vacation_mode_switch": {
+                "name": "Vacation Mode"
             },
             "liming_protection": {
                 "name": "Liming Protection"

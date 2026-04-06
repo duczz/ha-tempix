@@ -27,6 +27,7 @@ from custom_components.tempix.const import (
     AGGRESSIVE_MODE_CALIBRATION,
     SCHEDULING_MODE_CALENDAR,
     HeatingState,
+    DEFAULT_VACATION_TEMP,
 )
 from custom_components.tempix.config_model import TempixConfig
 from custom_components.tempix.engine import TempixEngine
@@ -221,7 +222,14 @@ class TempixCoordinator:
                 self.hass, self.async_update, timedelta(minutes=self.config.calendar_scan_interval)
             )
 
-        await self.async_update()
+        try:
+            await self.async_update()
+        except asyncio.CancelledError:
+            _LOGGER.warning(
+                "%s: Initial update cancelled (likely integration reload before HA was ready). "
+                "Will retry on next state change.",
+                self.config.name,
+            )
 
     async def _async_fetch_calendar_events(self) -> None:
         """Fetch agenda for all configured calendars for deep scanning."""
@@ -718,6 +726,11 @@ class TempixCoordinator:
 
             case HeatingState.LIMING:
                 return "Liming Protection"
+
+            case HeatingState.VACATION:
+                _, vt = self.engine.is_vacation_mode()
+                temp = vt if vt is not None else DEFAULT_VACATION_TEMP
+                return f"Vacation Mode ({temp}°C)"
 
             case HeatingState.PARTY:
                 _, pt = self.engine.check_party_mode()

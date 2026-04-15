@@ -12,6 +12,8 @@ from dataclasses import dataclass, field, fields
 from datetime import timedelta
 from typing import Any
 
+from custom_components.tempix.const import MIN_CALENDAR_SCAN_INTERVAL, MAX_CALENDAR_SCAN_INTERVAL
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -209,21 +211,22 @@ class TempixConfig:
 
     # ── Optimum Start / Evolution ────────────────────────────────────────
     optimum_start: bool = False
-    weather_anticipation: bool = False
-    weather_offset: float = 1.0
+    sunshine_offset: bool = False
+    sunshine_offset_value: float = 1.0
     learned_heating_rate: float = 1.0
     heating_rate_lookback: int = 5
     max_optimum_start: timedelta = field(
         default_factory=lambda: timedelta(hours=2)
     )
 
+    # ── Holiday ──────────────────────────────────────────────────────────
+    holiday_calendar: str | None = None
+    holiday_use_day: str | None = None
+
     # ── Calendar ─────────────────────────────────────────────────────────
     calendar: list[str] = field(default_factory=list)
     calendar_event: str = ""
     calendar_room: str = ""
-    calendar_hvac_mode: str | None = None
-    calendar_comfort_temp: float = 21.0
-    calendar_eco_temp: float = 19.0
     calendar_scan_interval: int = 15
     sync_calendar_with_entities: bool = False
 
@@ -370,21 +373,21 @@ class TempixConfig:
             # Optimum Start
             optimum_start=bool(g("optimum_start", False)),
             weather_entity=g("weather_entity"),
-            weather_anticipation=bool(g("weather_anticipation", False)),
-            weather_offset=float(g("weather_offset", 1.0)),
+            sunshine_offset=bool(g("sunshine_offset", False)),
+            sunshine_offset_value=float(g("sunshine_offset_value", 1.0)),
             learned_heating_rate=float(g("learned_heating_rate", 1.0)),
             heating_rate_lookback=int(g("heating_rate_lookback", 5)),
             max_optimum_start=parse_duration(
                 g("max_optimum_start", {"hours": 2, "minutes": 0, "seconds": 0})
             ),
+            # Holiday
+            holiday_calendar=g("holiday_calendar"),
+            holiday_use_day=g("holiday_use_day"),
             # Calendar
             calendar=_parse_entity_list(g("calendar")),
             calendar_event=g("calendar_event", ""),
             calendar_room=g("calendar_room", ""),
-            calendar_hvac_mode=g("calendar_hvac_mode"),
-            calendar_comfort_temp=float(g("calendar_comfort_temp", 21.0)),
-            calendar_eco_temp=float(g("calendar_eco_temp", 19.0)),
-            calendar_scan_interval=int(g("calendar_scan_interval", 15)),
+            calendar_scan_interval=max(MIN_CALENDAR_SCAN_INTERVAL, min(int(g("calendar_scan_interval", 15)), MAX_CALENDAR_SCAN_INTERVAL)),
             sync_calendar_with_entities=bool(
                 g("sync_calendar_with_entities", False)
             ),

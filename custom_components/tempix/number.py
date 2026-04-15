@@ -20,7 +20,7 @@ from custom_components.tempix.const import (
     CONF_TEMPERATURE_ECO_STATIC,
     CONF_PARTY_TEMPERATURE,
     CONF_VACATION_TEMPERATURE,
-    CONF_WEATHER_OFFSET,
+    CONF_SUNSHINE_OFFSET_VALUE,
     CONF_MAX_OPTIMUM_START,
     CONF_LEARNED_HEATING_RATE,
     DEFAULT_VACATION_TEMP,
@@ -62,7 +62,7 @@ async def async_setup_entry(
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_WEATHER_OFFSET, "Weather Anticipation Offset", "mdi:weather-sunny",
+            CONF_SUNSHINE_OFFSET_VALUE, "Sunshine Offset Value", "mdi:weather-sunny",
             0.0, 5.0, 0.1, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(

@@ -1,4 +1,6 @@
 """Constants for the Tempix integration."""
+import json
+import pathlib
 from enum import Enum
 from homeassistant.const import (
     Platform,
@@ -10,10 +12,15 @@ from homeassistant.const import (
 )
 
 DOMAIN = "tempix"
-VERSION = "1.6.0"
+VERSION: str = json.loads(
+    (pathlib.Path(__file__).parent / "manifest.json").read_text(encoding="utf-8")
+)["version"]
 PLATFORMS = [Platform.CLIMATE, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH, Platform.NUMBER, Platform.SELECT]
 
 INVALID_STATES = [STATE_UNKNOWN, STATE_UNAVAILABLE, None, ""]
+
+MIN_CALENDAR_SCAN_INTERVAL = 5   # minutes
+MAX_CALENDAR_SCAN_INTERVAL = 60  # minutes
 
 # ─── Configuration Keys ──────────────────────────────────────────────────────
 
@@ -131,7 +138,6 @@ CONF_LIMING_IN_SEASON = "liming_in_season"
 # 16. On/Off Automation Options
 CONF_SEASON_MODE_ENTITY = "season_mode_entity"
 CONF_IDLE_TEMPERATURE = "idle_temperature"
-CONF_HYSTERESIS = "hysteresis"
 
 # 17. Dynamic Valve Positioning
 CONF_VALVE_MODE = "valve_mode"
@@ -153,8 +159,8 @@ CONF_SENSOR_RETENTION = "sensor_retention"
 
 # 20. Evolution Features (v1.3.0)
 CONF_OPTIMUM_START = "optimum_start"
-CONF_WEATHER_ANTICIPATION = "weather_anticipation"
-CONF_WEATHER_OFFSET = "weather_offset"
+CONF_SUNSHINE_OFFSET = "sunshine_offset"
+CONF_SUNSHINE_OFFSET_VALUE = "sunshine_offset_value"
 
 # 21. Calendar Integration (v1.4.0)
 CONF_SCHEDULING_MODE = "scheduling_mode"
@@ -164,11 +170,10 @@ SCHEDULING_MODE_CALENDAR = "calendar"
 CONF_CALENDAR = "calendar"
 CONF_CALENDAR_EVENT = "calendar_event"
 CONF_CALENDAR_ROOM = "calendar_room"
-CONF_CALENDAR_HVAC_MODE = "calendar_hvac_mode"
-CONF_CALENDAR_COMFORT_TEMP = "calendar_comfort_temp"
-CONF_CALENDAR_ECO_TEMP = "calendar_eco_temp"
 CONF_CALENDAR_SCAN_INTERVAL = "calendar_scan_interval"
 CONF_SYNC_CALENDAR_WITH_ENTITIES = "sync_calendar_with_entities"
+CONF_HOLIDAY_CALENDAR = "holiday_calendar"
+CONF_HOLIDAY_USE_DAY = "holiday_use_day"
 
 # 22. Adaptive Learning (v1.5.0)
 CONF_LEARNED_HEATING_RATE = "learned_heating_rate"
@@ -205,9 +210,7 @@ DEFAULT_CALIBRATION_TIMEOUT = {"hours": 0, "minutes": 1, "seconds": 0}
 DEFAULT_VALVE_TIMEOUT = {"hours": 0, "minutes": 20, "seconds": 0}
 DEFAULT_SENSOR_RETENTION = {"hours": 0, "minutes": 0, "seconds": 30}
 DEFAULT_CALENDAR_SCAN_INTERVAL = 15
-DEFAULT_CALENDAR_COMFORT_TEMP = 21.0
-DEFAULT_CALENDAR_ECO_TEMP = 19.0
-DEFAULT_WEATHER_OFFSET = 1.0
+DEFAULT_SUNSHINE_OFFSET_VALUE = 1.0
 DEFAULT_HEATING_RATE = 1.0  # °C per hour
 DEFAULT_HEATING_RATE_LOOKBACK = 5  # cycles
 DEFAULT_MAX_OPTIMUM_START = {"hours": 2, "minutes": 0, "seconds": 0}

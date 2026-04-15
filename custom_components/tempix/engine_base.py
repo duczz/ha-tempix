@@ -46,15 +46,25 @@ class EngineBaseMixin:
         self._optimum_start_active: bool = False
         self._calibration_entity_map: dict[str, str | None] = {}
         self._calendar_events: dict[str, list[dict[str, Any]]] = {}
+        self._schedule_slots: dict[str, dict[str, list[dict[str, Any]]]] = {}
         self._last_home_status: bool | None = None  # memory for current session
         self._last_outside_ok: bool | None = None  # hysteresis state for outside threshold
         self._guest_warned: set[str] = set()  # O-5: warn once per unavailable guest entity
+        self._reboot_logged: set[str] = set()  # log reboot/initial-state detection only once per entity per boot
 
     # ── injection ────────────────────────────────────────────────────────────
+
+    def set_startup_time(self, dt: datetime) -> None:
+        """Set the startup time (called by coordinator after setup)."""
+        self._startup_time = dt
 
     def set_calendar_events(self, events: dict[str, list[dict[str, Any]]]) -> None:
         """Inject fetched calendar events for deep scanning."""
         self._calendar_events = events
+
+    def set_schedule_slots(self, slots: dict[str, dict[str, list[dict[str, Any]]]]) -> None:
+        """Inject fetched schedule slots for start/end time display."""
+        self._schedule_slots = slots
 
     def set_state_snapshot(self, snapshot: dict[str, Any]) -> None:
         """Inject a snapshot of states to be used for this calculation cycle."""

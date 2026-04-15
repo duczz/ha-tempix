@@ -2,9 +2,10 @@
 Tempix – TRV Appliers.
 
 Contains:
-  * ``safe_service_call``  – shared async helper with timeout + retry
-  * ``CalibrationApplier`` – applies TRV / Tado calibration offsets
-  * ``ValvePositioner``    – sets valve-position number entities
+  * ``safe_service_call``     – shared async helper with timeout + retry
+  * ``async_apply_trv_change`` – applies a single TRV hvac_mode/temperature change
+  * ``CalibrationApplier``    – applies TRV / Tado calibration offsets
+  * ``ValvePositioner``       – sets valve-position number entities
 """
 from __future__ import annotations
 
@@ -35,15 +36,25 @@ async def safe_service_call(
     timeout: int = 30,
     return_response: bool = False,
     max_retries: int = 2,
+    raise_on_failure: bool = False,
+    ha_error_log_level: int = logging.WARNING,
 ) -> Any:
     """Wrap hass.services.async_call with timeout and exponential-backoff retry.
 
     Retries up to *max_retries* times (2 s, 4 s back-off).
     Essential for FRITZ!DECT thermostats where the DECT radio bridge
     can temporarily be unable to reach devices.
+
+    If *raise_on_failure* is True, raises ``RuntimeError`` after all retries
+    are exhausted so callers (e.g. circuit breaker) can detect persistent failures.
+
+    *ha_error_log_level* controls the log level for HomeAssistantError/ServiceNotFound
+    failures (default WARNING). Pass ``logging.DEBUG`` for expected transient failures
+    (e.g. calendar sync not yet complete on startup).
     """
     entity_hint = service_data.get("entity_id", "?")
     total_attempts = max_retries + 1
+    last_exc: Exception | None = None
 
     for attempt in range(1, total_attempts + 1):
         try:
@@ -53,7 +64,8 @@ async def safe_service_call(
                     blocking=True,
                     return_response=return_response,
                 )
-        except TimeoutError:
+        except TimeoutError as exc:
+            last_exc = exc
             if attempt < total_attempts:
                 backoff = 2 ** attempt  # 2 s, 4 s
                 _LOGGER.warning(
@@ -66,14 +78,77 @@ async def safe_service_call(
                     "%s: %s.%s timed out after %d attempts for %s – giving up",
                     name, domain, service, total_attempts, entity_hint,
                 )
-                return None
         except (HomeAssistantError, ServiceNotFound) as exc:
-            _LOGGER.warning(
+            last_exc = exc
+            _LOGGER.log(
+                ha_error_log_level,
                 "%s: %s.%s failed for %s: %s",
                 name, domain, service, entity_hint, exc,
             )
-            return None
+            break  # no retry for HA errors
+
+    if raise_on_failure and last_exc is not None:
+        raise RuntimeError(f"{domain}.{service} failed for {entity_hint}") from last_exc
     return None
+
+
+# ── single TRV change applier ─────────────────────────────────────────────────
+
+async def async_apply_trv_change(
+    hass: HomeAssistant,
+    name: str,
+    change: dict,
+    secs: float,
+) -> None:
+    """Apply a single TRV change (hvac_mode and/or temperature).
+
+    Combines mode and temperature into a single ``set_temperature`` call
+    when possible (saves one service call per TRV). Falls back to separate
+    ``set_hvac_mode`` / ``set_temperature`` calls when the TRV integration
+    doesn't accept a combined update.
+
+    Idempotency: skips ``set_temperature`` when the TRV already holds the
+    target within 0.1 °C of the requested value.
+    """
+    eid = change["entity_id"]
+    new_mode = change.get("hvac_mode")
+    new_temp = change.get("temperature")
+    state = hass.states.get(eid)
+    cur_mode = state.state if state else None
+    cur_temp = state.attributes.get("temperature") if state else None
+
+    # ── Combined mode and temperature update ─────────────────────
+    if (new_mode and new_mode != cur_mode and
+        new_temp is not None and (new_mode != "off" or new_temp > 0)):
+
+        if cur_temp is None or abs(float(cur_temp) - new_temp) >= 0.1:
+            await safe_service_call(
+                hass, name,
+                "climate", "set_temperature",
+                {"entity_id": eid, "temperature": new_temp, "hvac_mode": new_mode},
+                raise_on_failure=True,
+            )
+            return
+
+    # ── Separate updates if combination wasn't possible ──────────
+    if new_mode and new_mode != cur_mode:
+        await safe_service_call(
+            hass, name,
+            "climate", "set_hvac_mode",
+            {"entity_id": eid, "hvac_mode": new_mode},
+            raise_on_failure=True,
+        )
+        if secs > 0:
+            await asyncio.sleep(secs)
+
+    if new_temp is not None and (new_mode != "off" or new_temp > 0):
+        if cur_temp is None or abs(float(cur_temp) - new_temp) >= 0.1:
+            await safe_service_call(
+                hass, name,
+                "climate", "set_temperature",
+                {"entity_id": eid, "temperature": new_temp},
+                raise_on_failure=True,
+            )
 
 
 # ── calibration applier ───────────────────────────────────────────────────────

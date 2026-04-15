@@ -14,6 +14,7 @@ from datetime import timedelta, datetime, UTC
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, Event, callback
 from homeassistant.helpers import entity_registry as er_helper
+from homeassistant.util import dt as dt_util
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_call_later,
@@ -35,6 +36,7 @@ from custom_components.tempix.coordinator_scene import SceneManager
 from custom_components.tempix.coordinator_appliers import (
     CalibrationApplier,
     ValvePositioner,
+    async_apply_trv_change,
     safe_service_call,
 )
 from custom_components.tempix.coordinator_learning import HeatingRateLearner
@@ -59,7 +61,7 @@ class TempixCoordinator:
 
         self._ha_started_listener: Any = None
         self._listeners: list = []
-        self._timers: list = []
+        self._last_update: dict | None = None
         self._trigger_timer: Any = None
         self._heartbeat_timer: Any = None
         self._reeval_timer: Any = None
@@ -67,10 +69,8 @@ class TempixCoordinator:
         self._update_lock = asyncio.Lock()
         self._updates_enabled = False
         self._ready_time: datetime | None = None
-        self._last_update: dict | None = None
-        self._last_update_time: datetime | None = None
         self._uncertainty_start_time: datetime | None = None
-        self._last_calendar_fetch: datetime | None = None
+        self._schedule_timer: Any = None
 
         # Public state for sensors
         self.current_hvac: str = "off"
@@ -84,6 +84,10 @@ class TempixCoordinator:
         self._entity_callbacks: list = []
         self._option_timers: dict[str, Any] = {}
         self._background_tasks: set[asyncio.Task] = set()
+
+        # Circuit breaker: tracks consecutive failures per TRV entity
+        # { entity_id: {"failures": int, "retry_after": datetime | None} }
+        self._cb_state: dict[str, dict] = {}
 
         # ── helper objects ────────────────────────────────────────────────
         self._scene_manager = SceneManager(
@@ -126,13 +130,15 @@ class TempixCoordinator:
             del self._option_timers[key]
 
         # Update the option in the config entry
-        entry = self.hass.config_entries.async_get_entry(
-            next(
-                entry_id
-                for entry_id, data in self.hass.data[DOMAIN].items()
-                if data.get("coordinator") == self
-            )
+        entry_id = next(
+            (eid for eid, data in self.hass.data.get(DOMAIN, {}).items()
+             if data.get("coordinator") == self),
+            None,
         )
+        if entry_id is None:
+            _LOGGER.warning("%s: async_set_temporary_option called before coordinator was registered", self.config.name)
+            return
+        entry = self.hass.config_entries.async_get_entry(entry_id)
         if not entry:
             return
 
@@ -195,7 +201,7 @@ class TempixCoordinator:
             self.debug_log("HA already running, starting coordinator immediately")
             await self._start_coordinator()
         else:
-            self.debug_log("WAiting for Home Assistant to start...")
+            self.debug_log("Waiting for Home Assistant to start...")
             # P3 Fix (F-LOOP-1): Capture bus listener unsubscriber
             self._ha_started_listener = self.hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED, self._on_ha_started
@@ -216,24 +222,46 @@ class TempixCoordinator:
         self._ready_time = datetime.now(UTC)
         self.debug_log(f"Coordinator ready at {self._ready_time}")
 
-        # ── Calendar Periodic Scan (v1.4.0) ──
-        if self.config.scheduling_mode == SCHEDULING_MODE_CALENDAR:
-            self._calendar_timer = async_track_time_interval(
-                self.hass, self.async_update, timedelta(minutes=self.config.calendar_scan_interval)
-            )
+        # ── Periodic Data Fetchers (decoupled from update loop) ──
+        interval = timedelta(minutes=self.config.calendar_scan_interval)
+        needs_initial_update = True
 
-        try:
-            await self.async_update()
-        except asyncio.CancelledError:
-            _LOGGER.warning(
-                "%s: Initial update cancelled (likely integration reload before HA was ready). "
-                "Will retry on next state change.",
-                self.config.name,
+        if self.config.scheduling_mode == SCHEDULING_MODE_CALENDAR or self.config.holiday_calendar:
+            self._calendar_timer = async_track_time_interval(
+                self.hass, self._async_fetch_and_update_calendar, interval
             )
+            # Attempt an immediate fetch. Cloud calendars (e.g. Google) that haven't
+            # finished their server sync will fail silently (debug-level) and retry
+            # on the next state-change or periodic timer.
+            # Note: each wrapper calls async_update after its own fetch. Rooms with both
+            # calendar + schedulers will therefore run two updates on startup — this is
+            # intentional: if the calendar fetch fails (integration not yet ready), the
+            # schedule update still runs independently with its own data.
+            await self._async_fetch_and_update_calendar()
+            needs_initial_update = False
+
+        if self.config.scheduling_mode != SCHEDULING_MODE_CALENDAR and self.config.schedulers:
+            self._schedule_timer = async_track_time_interval(
+                self.hass, self._async_fetch_and_update_schedule, interval
+            )
+            await self._async_fetch_and_update_schedule()
+            needs_initial_update = False
+
+        if needs_initial_update:
+            try:
+                await self.async_update()
+            except asyncio.CancelledError:
+                _LOGGER.warning(
+                    "%s: Initial update cancelled (likely integration reload before HA was ready). "
+                    "Will retry on next state change.",
+                    self.config.name,
+                )
 
     async def _async_fetch_calendar_events(self) -> None:
         """Fetch agenda for all configured calendars for deep scanning."""
-        calendars = self.config.calendar
+        calendars = list(self.config.calendar)
+        if self.config.holiday_calendar and self.config.holiday_calendar not in calendars:
+            calendars.append(self.config.holiday_calendar)
         if not calendars:
             return
 
@@ -249,15 +277,17 @@ class TempixCoordinator:
                 continue
             try:
                 self.debug_log(f"Fetching calendar events for {cal_id}")
+                params = {
+                    "entity_id": cal_id,
+                    "start_date_time": start.isoformat(),
+                    "end_date_time": end.isoformat(),
+                }
                 response = await safe_service_call(
                     self.hass, self.config.name,
                     "calendar", "get_events",
-                    {
-                        "entity_id": cal_id,
-                        "start_date_time": start.isoformat(),
-                        "end_date_time": end.isoformat(),
-                    },
+                    params,
                     return_response=True,
+                    ha_error_log_level=logging.DEBUG,
                 )
 
                 if response and cal_id in response:
@@ -271,7 +301,56 @@ class TempixCoordinator:
                 _LOGGER.error("Error fetching calendar events for %s: %s", cal_id, exc, exc_info=True)
 
         self.engine.set_calendar_events(all_events)
-        self._last_calendar_fetch = now
+
+    async def _async_fetch_schedule_slots(self) -> None:
+        """Fetch timeslots for all configured schedulers via schedule.get_schedule."""
+        schedulers = self.config.schedulers
+        if not schedulers:
+            return
+
+        all_slots: dict[str, list[dict[str, Any]]] = {}
+
+        for sched_id in schedulers:
+            if not self.hass.states.get(sched_id):
+                _LOGGER.debug("Scheduler entity %s not available, skipping fetch", sched_id)
+                continue
+            try:
+                self.debug_log(f"Fetching schedule slots for {sched_id}")
+                response = await safe_service_call(
+                    self.hass, self.config.name,
+                    "schedule", "get_schedule",
+                    {"entity_id": sched_id},
+                    return_response=True,
+                )
+                if response:
+                    # Response: {entity_id: {weekday: [{'from': time, 'to': time}]}}
+                    data = response.get(sched_id, {})
+                    all_slots[sched_id] = data
+                    self.debug_log(f"Fetched schedule for {sched_id}: {list(data.keys())}")
+            except Exception as exc:
+                _LOGGER.warning("Error fetching schedule slots for %s: %s", sched_id, exc)
+
+        self.engine.set_schedule_slots(all_slots)
+
+    async def _async_fetch_and_update_calendar(self, _now: datetime | None = None) -> None:
+        """Fetch calendar events and trigger a recalculation."""
+        if not self._updates_enabled:
+            return
+        try:
+            await self._async_fetch_calendar_events()
+        except Exception as exc:
+            _LOGGER.warning("%s: Calendar fetch failed, using last cached data: %s", self.config.name, exc)
+        await self.async_update()
+
+    async def _async_fetch_and_update_schedule(self, _now: datetime | None = None) -> None:
+        """Fetch schedule slots and trigger a recalculation."""
+        if not self._updates_enabled:
+            return
+        try:
+            await self._async_fetch_schedule_slots()
+        except Exception as exc:
+            _LOGGER.warning("%s: Schedule slots fetch failed, using last cached data: %s", self.config.name, exc)
+        await self.async_update()
 
     def _register_listeners(self) -> None:
         """Track entities for state changes = blueprint triggers."""
@@ -339,8 +418,8 @@ class TempixCoordinator:
         if self._heartbeat_timer:
             self._heartbeat_timer()
 
-        self._heartbeat_timer = async_call_later(
-            self.hass, 60, self._on_heartbeat
+        self._heartbeat_timer = async_track_time_interval(
+            self.hass, self._on_heartbeat, timedelta(minutes=1)
         )
 
     @callback
@@ -352,6 +431,13 @@ class TempixCoordinator:
         entity_id = event.data.get("entity_id", "")
         old_state = event.data.get("old_state")
         new_state = event.data.get("new_state")
+
+        # Calendar state change → trigger immediate re-fetch + recalculation.
+        # Skip if the calendar is still unavailable/syncing to avoid fetch spam on startup.
+        if entity_id in self.config.calendar or entity_id == self.config.holiday_calendar:
+            if new_state and new_state.state not in ("unavailable", "unknown"):
+                self._create_tracked_task(self._async_fetch_and_update_calendar())
+            return
 
         # Ignore identical state
         if old_state and new_state and old_state.state == new_state.state:
@@ -393,6 +479,7 @@ class TempixCoordinator:
     @callback
     def _on_heartbeat(self, _now) -> None:
         """Periodic heartbeat to ensure state is in sync."""
+        self.debug_log("Heartbeat fired")
         self._create_tracked_task(self.async_update())
 
     @callback
@@ -452,6 +539,10 @@ class TempixCoordinator:
             self._calendar_timer()
             self._calendar_timer = None
 
+        if self._schedule_timer:
+            self._schedule_timer()
+            self._schedule_timer = None
+
         # Cancel all option-specific timers
         for cancel_timer in self._option_timers.values():
             if cancel_timer:
@@ -471,36 +562,8 @@ class TempixCoordinator:
             return
 
         async with self._update_lock:
-            # ── Calendar Agenda Fetch (v1.6.0) ──
-            if self.config.scheduling_mode == SCHEDULING_MODE_CALENDAR:
-                now_dt = datetime.now(UTC)
-                if (not self._last_calendar_fetch or
-                    (now_dt - self._last_calendar_fetch).total_seconds() > (self.config.calendar_scan_interval * 60 - 30)):
-                    try:
-                        await self._async_fetch_calendar_events()
-                    except Exception as exc:
-                        _LOGGER.warning(
-                            "%s: Calendar fetch failed, using last cached data: %s",
-                            self.config.name, exc,
-                        )
-
-            # R3: Trigger-Throttling (Audit 1.1)
-            now = datetime.now(UTC)
-            if self._last_update_time and (now - self._last_update_time).total_seconds() < 2:
-                if self.config.log_level == "debug":
-                    _LOGGER.debug("%s: Skipping redundant update (cooldown active)", self.config.name)
-                return
-
-            if self._heartbeat_timer:
-                self._heartbeat_timer()
-
-            self._heartbeat_timer = async_call_later(
-                self.hass, 60, self._on_heartbeat
-            )
-
             try:
                 success = await self._do_update()
-                self._last_update_time = datetime.now(UTC)
 
                 if success:
                     self._uncertainty_start_time = None
@@ -551,7 +614,7 @@ class TempixCoordinator:
             if state:
                 snapshot[eid] = state
         self.engine.set_state_snapshot(snapshot)
-        self.engine._startup_time = self._ready_time
+        self.engine.set_startup_time(self._ready_time)
 
         # ── 1. Engine calculations ───────────────────────────────────────
         adj = self.engine.get_active_adjustment()
@@ -623,11 +686,34 @@ class TempixCoordinator:
         # ── 4. Apply changes (Throttled Parallel - v1.5.1) ───────────────
         secs = self.config.action_delay.total_seconds()
 
-        semaphore = asyncio.Semaphore(3)
+        semaphore = asyncio.Semaphore(max(len(self.config.trvs) // 3 + 1, 1))
 
         async def _apply_with_semaphore(change: dict[str, Any]) -> None:
             async with semaphore:
-                await self._async_apply_trv_change(change, secs)
+                eid = change["entity_id"]
+                cb = self._cb_state.setdefault(eid, {"failures": 0, "retry_after": None})
+
+                # Circuit breaker: skip if in backoff period
+                if cb["retry_after"] and datetime.now(UTC) < cb["retry_after"]:
+                    self.debug_log(f"Circuit breaker: skipping {eid} (retry after {cb['retry_after'].strftime('%H:%M')})")
+                    return
+
+                try:
+                    await async_apply_trv_change(self.hass, self.config.name, change, secs)
+                    # Success → reset circuit breaker
+                    if cb["failures"] > 0:
+                        _LOGGER.info("%s: %s recovered — circuit breaker reset", self.config.name, eid)
+                    cb["failures"] = 0
+                    cb["retry_after"] = None
+                except Exception as exc:
+                    cb["failures"] += 1
+                    # Backoff: 15 → 30 → 60 → 120min (cap at 120)
+                    backoff_min = min(15 * (2 ** (cb["failures"] - 1)), 120)
+                    cb["retry_after"] = datetime.now(UTC) + timedelta(minutes=backoff_min)
+                    _LOGGER.warning(
+                        "%s: %s failed (%d/5+) — pausing for %dmin: %s",
+                        self.config.name, eid, cb["failures"], backoff_min, exc,
+                    )
 
         if changes:
             tasks = [
@@ -660,15 +746,7 @@ class TempixCoordinator:
         if self.config.valve_mode != "off":
             await self._valve_positioner.apply(target_temp)
 
-        # ── 7. Fire event for external automations ───────────────────────
-        self.hass.bus.async_fire(f"{DOMAIN}_update", {
-            "name": name,
-            "hvac_mode": hvac_mode,
-            "temperature": target_temp,
-            "reason": self.current_reason,
-        })
-
-        # ── 8. Dynamic Re-evaluation (Phase 50) ──────────────────────────
+        # ── 7. Dynamic Re-evaluation (Phase 50) ──────────────────────────
         if self._reeval_timer:
             self._reeval_timer()
             self._reeval_timer = None
@@ -682,6 +760,14 @@ class TempixCoordinator:
                 self._reeval_timer = async_call_later(
                     self.hass, delay + 1, self._delayed_update
                 )
+
+        self._last_update = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "hvac_mode": hvac_mode,
+            "target_temp": target_temp,
+            "reason": self.current_reason,
+            "changes_count": len(changes),
+        }
 
         return True
 
@@ -712,10 +798,7 @@ class TempixCoordinator:
                     parts.append("Off")
                 t = self.engine.check_outside_threshold()
                 if t is False and self.engine.is_season_mode():
-                    if (not self.engine.is_scheduler_defined()
-                            or self.engine.is_scheduler_active() is not False
-                            or self.engine.is_calendar_comfort_active() is not False):
-                        parts.append("Outside > Threshold")
+                    parts.append("Outside > Threshold")
                 return " | ".join(parts) if parts else "Inactive"
 
             case HeatingState.FROST_PROTECTION:
@@ -752,67 +835,41 @@ class TempixCoordinator:
 
             case HeatingState.AWAY:
                 if set_comfort:
+                    parts = []
                     offset = self.config.away_offset
                     if offset != 0:
-                        return f"Away (-{offset}°C)"
-                    return "Away"
+                        parts.append(f"🚶 -{offset}°C")
+                    if self.engine.is_sunshine_offset_active():
+                        w_offset = self.engine.get_sunshine_offset()
+                        if w_offset > 0:
+                            parts.append(f"☀️ -{w_offset}°C")
+                    suffix = f" ({', '.join(parts)})" if parts else ""
+                    return f"Comfort{suffix}"
                 return "Eco"
 
             case HeatingState.COMFORT:
-                if self.engine.is_weather_anticipation_active():
-                    w_offset = self.engine.get_weather_offset()
+                parts = []
+                if self.engine.is_holiday_today():
+                    parts.append("Holiday")
+                if self.engine.is_sunshine_offset_active():
+                    w_offset = self.engine.get_sunshine_offset()
                     if w_offset > 0:
-                        return f"Comfort (Weather -{w_offset}°C)"
-                return "Comfort"
+                        parts.append(f"☀️ -{w_offset}°C")
+                suffix = f" ({', '.join(parts)})" if parts else ""
+                return f"Comfort{suffix}"
 
             case HeatingState.ECO:
-                return "Eco"
+                parts = []
+                if self.engine.is_holiday_today():
+                    parts.append("Holiday")
+                t = self.engine.check_outside_threshold()
+                if t is False and self.engine.is_season_mode():
+                    parts.append("Outside > Threshold")
+                suffix = f" ({', '.join(parts)})" if parts else ""
+                return f"Eco{suffix}"
 
             case _:
                 return "Unknown"
-
-    async def _async_apply_trv_change(self, change: dict, secs: float) -> None:
-        """Apply a single TRV change asynchronously."""
-        eid = change["entity_id"]
-        new_mode = change.get("hvac_mode")
-        new_temp = change.get("temperature")
-        state = self.hass.states.get(eid)
-        cur_mode = state.state if state else None
-        cur_temp = state.attributes.get("temperature") if state else None
-        name = self.config.name
-
-        try:
-            # ── Combined mode and temperature update ─────────────────────
-            if (new_mode and new_mode != cur_mode and
-                new_temp is not None and (new_mode != "off" or new_temp > 0)):
-
-                if cur_temp is None or abs(float(cur_temp) - new_temp) >= 0.1:
-                    await safe_service_call(
-                        self.hass, name,
-                        "climate", "set_temperature",
-                        {"entity_id": eid, "temperature": new_temp, "hvac_mode": new_mode},
-                    )
-                    return
-
-            # ── Separate updates if combination wasn't possible ──────────
-            if new_mode and new_mode != cur_mode:
-                await safe_service_call(
-                    self.hass, name,
-                    "climate", "set_hvac_mode",
-                    {"entity_id": eid, "hvac_mode": new_mode},
-                )
-                if secs > 0:
-                    await asyncio.sleep(secs)
-
-            if new_temp is not None and (new_mode != "off" or new_temp > 0):
-                if cur_temp is None or abs(float(cur_temp) - new_temp) >= 0.1:
-                    await safe_service_call(
-                        self.hass, name,
-                        "climate", "set_temperature",
-                        {"entity_id": eid, "temperature": new_temp},
-                    )
-        except Exception as exc:
-            _LOGGER.warning("%s: failed to apply %s: %s", name, eid, exc)
 
     def _get_snapshot_entities(self) -> set[str]:
         """Collect all entity IDs from config that should be snapshotted."""

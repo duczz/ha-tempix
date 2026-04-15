@@ -129,7 +129,9 @@ class ProtectionMixin:
                     diff = abs((last_changed - self._startup_time).total_seconds())
                     if diff < grace_dur.total_seconds():
                         is_reboot_timestamp = True
-                        self.debug_log(f"Reboot detected for window {sid} (diff: {diff:.1f}s). Ignoring close delay.")
+                        if sid not in self._reboot_logged:
+                            self.debug_log(f"Reboot detected for window {sid} (diff: {diff:.1f}s). Ignoring close delay.")
+                            self._reboot_logged.add(sid)
 
                 if not is_reboot_timestamp and last_changed >= off_time:
                     closed_but_recent = True

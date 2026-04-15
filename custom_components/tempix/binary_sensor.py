@@ -51,7 +51,7 @@ async def async_setup_entry(
         TempixBinarySensor(
             coordinator, engine, entry,
             "away_mode", "Away Mode",
-            "mdi:bag-suitcase", None,
+            "mdi:home-export-outline", None,
             lambda e: e.is_away()
         ),
         TempixBinarySensor(

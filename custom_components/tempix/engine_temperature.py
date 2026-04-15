@@ -32,22 +32,22 @@ class TemperatureMixin:
         """Return the configured window-open temperature."""
         return self.config.window_open_temp
 
-    # ── weather anticipation ─────────────────────────────────────────────────
+    # ── sunshine offset ──────────────────────────────────────────────────────
 
-    def is_weather_anticipation_active(self) -> bool:
-        """Return ``True`` if the weather state currently qualifies for anticipation."""
-        if self.config.weather_anticipation:
+    def is_sunshine_offset_active(self) -> bool:
+        """Return ``True`` if the weather state currently qualifies for sunshine offset."""
+        if self.config.sunshine_offset:
             weather_eid = self.config.weather_entity
             if weather_eid:
                 w_state = self._get_state(weather_eid)
-                if w_state and w_state.state in ["sunny", "clear"]:
+                if w_state and w_state.state == "sunny":
                     return True
         return False
 
-    def get_weather_offset(self) -> float:
-        """Return the current weather offset (0.0 if inactive)."""
-        if self.is_weather_anticipation_active():
-            return self.config.weather_offset
+    def get_sunshine_offset(self) -> float:
+        """Return the current sunshine offset (0.0 if inactive)."""
+        if self.is_sunshine_offset_active():
+            return self.config.sunshine_offset_value
         return 0.0
 
     # ── target temperature chain ─────────────────────────────────────────────
@@ -104,14 +104,10 @@ class TemperatureMixin:
             away_offset = self.config.away_offset
             target = eff_comfort - away_offset
 
-        # Weather Anticipation – only in comfort mode, only daytime states
-        if self.config.weather_anticipation and set_comfort:
-            weather_eid = self.config.weather_entity
-            if weather_eid:
-                w_state = self._get_state(weather_eid)
-                if w_state and w_state.state in ["sunny", "clear"]:
-                    offset = self.config.weather_offset
-                    target -= offset
-                    self.debug_log(f"Weather Anticipation: target -{offset}°C (state={w_state.state})")
+        # Sunshine Offset – only in comfort mode, only when sunny
+        if set_comfort and self.is_sunshine_offset_active():
+            offset = self.config.sunshine_offset_value
+            target -= offset
+            self.debug_log(f"Sunshine Offset: target -{offset}°C")
 
         return target

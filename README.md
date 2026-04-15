@@ -1,6 +1,6 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 [![HA Version](https://img.shields.io/badge/HA%20Minimum-2024.6.0-blue)](https://www.home-assistant.io)
-[![Version](https://img.shields.io/badge/Version-1.6.0-green)](https://github.com/duczz/ha-tempix/releases)
+[![Version](https://img.shields.io/badge/Version-1.6.2-green)](https://github.com/duczz/ha-tempix/releases)
 [![IoT Class](https://img.shields.io/badge/IoT%20Class-local__push-brightgreen)](https://www.home-assistant.io/integrations)
 
 # 🏠 Tempix
@@ -31,7 +31,8 @@ Vielen Dank für deine Unterstützung! ❤️
 - **❄️ Frostschutz** – Greift auch wenn der Saison-Modus aktiv ist (Sommerbetrieb)
 - **🚀 Aggressiver Modus (Push-To-Target)** – Erzwingt schnelles Aufheizen nach Abwesenheit oder Lüften
 - **⏱️ Smart Preheating** – Lernt Aufheizrate (EMA). Startet automatisch zum richtigen Zeitpunkt
-- **☀️ Wetter-Vorausschau** – Reduziert Comfort-Temp bei Sonnenschein passiv
+- **☀️ Sunshine Offset** – Reduziert Comfort-Temp bei Sonnenschein (nur `sunny`)
+- **🎉 Feiertags-Erkennung** – Automatischer Zeitplan-Wechsel an Feiertagen via HA Holiday-Integration
 - **🎉 Party- & Gäste-Modus** – Mit optionalem Auto-Timer via Service
 - **🏖️ Saison-Modus** – Außentemperatur-Gate mit Hysterese verhindert stetes Hin- und Herschalten
 - **🔧 Ventilpositionierung** – Direkte Ventil-% Steuerung für unterstützte TRVs

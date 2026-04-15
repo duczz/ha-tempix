@@ -152,7 +152,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         _LOGGER.debug("Reload listener triggered but data not yet initialized for %s", entry.entry_id)
         return
 
-    old_raw = data["engine"].config._raw  # Original dict for comparison
+    old_raw = data["coordinator"].config._raw  # Original dict for comparison
 
     def _norm(v: Any) -> Any:
         """Treat None, empty string, and missing key as equivalent."""
@@ -180,6 +180,7 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     # If no keys actually changed, skip
     if not changed_keys:
+        _LOGGER.debug("Reload listener for %s: no changed keys, skipping", entry.title)
         return
 
     # If no reload-required key was changed, do a dynamic update
@@ -188,9 +189,11 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         typed_config = TempixConfig.from_dict(new_config)
         data["engine"].config = typed_config
         data["coordinator"].config = typed_config
-        
+
         # Force a coordinator update to apply changes immediately
+        _LOGGER.debug("Dynamic update for %s: calling async_update", entry.title)
         await data["coordinator"].async_update()
+        _LOGGER.debug("Dynamic update for %s: async_update complete", entry.title)
         return
 
     # Otherwise, full reload

@@ -184,12 +184,11 @@ def _get_scheduler_name(engine) -> str:
     sched_id = engine.get_active_scheduler()
     if sched_id:
         state = engine._get_state(sched_id)
-        if state:
-            if state.attributes.get("friendly_name"):
-                return state.attributes.get("friendly_name")
-            if state.state not in [STATE_UNKNOWN, STATE_UNAVAILABLE]:
-                return f"{sched_id} ({state.state})"
-        return str(sched_id)
+        name = (state.attributes.get("friendly_name") if state else None) or sched_id
+        # Determine if scheduler is currently active (ON) or next
+        is_active = bool(state and state.state == STATE_ON)
+        prefix = "Helper" if is_active else "Helper (nächster)"
+        return f"{prefix}: {name}"
 
     return "Kein Termin/Scheduler"
 

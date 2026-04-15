@@ -106,8 +106,9 @@ class PresenceMixin:
                 if last_changed <= self._startup_time + timedelta(seconds=1):
                     is_reboot = True
 
-            if is_reboot:
+            if is_reboot and p not in self._reboot_logged:
                 self.debug_log(f"Initial state/Reboot detected for {p}. Ignoring delays.")
+                self._reboot_logged.add(p)
 
             if s == STATE_HOME:
                 if entering_duration > timedelta(0):

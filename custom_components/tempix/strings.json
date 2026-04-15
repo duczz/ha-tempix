@@ -49,14 +49,14 @@
                             "outside_temp_threshold": "Climate Threshold (Outside)",
                             "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
                             "outside_temp_fallback": "Continue on sensor failure",
-                            "weather_entity": "Weather Entity (Weather Anticipation)"
+                            "weather_entity": "Weather Entity (Sunshine Offset)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
                             "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
                             "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
-                            "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
+                            "weather_entity": "Optional weather entity for Sunshine Offset. When sunny, the target temperature is reduced by the Sunshine Offset value. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }
                     }
                 }
@@ -126,14 +126,18 @@
                     "calendar_event": "Event Keywords",
                     "calendar_room": "Location Filter",
                     "calendar_scan_interval": "Scan Interval",
-                    "sync_calendar_with_entities": "Sync with Helpers"
+                    "sync_calendar_with_entities": "Sync with Helpers",
+                    "holiday_calendar": "Holiday Calendar",
+                    "holiday_use_day": "Holiday Use Day"
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
                     "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
-                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards."
+                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
+                    "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
+                    "holiday_use_day": "Which weekday schedule to use on public holidays."
                 }
             },
             "expert_presence": {
@@ -354,11 +358,15 @@
                 "description": "Configure schedule helpers.",
                 "data": {
                     "schedulers": "Schedule Helpers",
-                    "scheduler_selector": "Schedule Selector"
+                    "scheduler_selector": "Schedule Selector",
+                    "holiday_calendar": "Holiday Calendar",
+                    "holiday_use_day": "Holiday Use Day"
                 },
                 "data_description": {
                     "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
-                    "scheduler_selector": "Optional entity that selects which schedule is active."
+                    "scheduler_selector": "Optional entity that selects which schedule is active.",
+                    "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
+                    "holiday_use_day": "Which weekday schedule to use on public holidays."
                 }
             }
         },
@@ -406,14 +414,14 @@
                             "outside_temp_threshold": "Climate Threshold (Outside)",
                             "outside_temp_hysteresis": "Hysteresis (Outside Threshold)",
                             "outside_temp_fallback": "Continue on sensor failure",
-                            "weather_entity": "Weather Entity (Weather Anticipation)"
+                            "weather_entity": "Weather Entity (Sunshine Offset)"
                         },
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
                             "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
                             "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
-                            "weather_entity": "Optional weather entity for Weather Anticipation. When sunny or clear, the target temperature is reduced by the Weather Anticipation Offset. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
+                            "weather_entity": "Optional weather entity for Sunshine Offset. When sunny, the target temperature is reduced by the Sunshine Offset value. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }
                     }
                 }
@@ -483,14 +491,18 @@
                     "calendar_event": "Event Keywords",
                     "calendar_room": "Location Filter",
                     "calendar_scan_interval": "Scan Interval",
-                    "sync_calendar_with_entities": "Sync with Helpers"
+                    "sync_calendar_with_entities": "Sync with Helpers",
+                    "holiday_calendar": "Holiday Calendar",
+                    "holiday_use_day": "Holiday Use Day"
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
                     "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
-                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards."
+                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
+                    "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
+                    "holiday_use_day": "Which weekday schedule to use on public holidays."
                 }
             },
             "expert_presence": {
@@ -711,11 +723,15 @@
                 "description": "Configure schedule helpers.",
                 "data": {
                     "schedulers": "Schedule Helpers",
-                    "scheduler_selector": "Schedule Selector"
+                    "scheduler_selector": "Schedule Selector",
+                    "holiday_calendar": "Holiday Calendar",
+                    "holiday_use_day": "Holiday Use Day"
                 },
                 "data_description": {
                     "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
-                    "scheduler_selector": "Optional entity that selects which schedule is active."
+                    "scheduler_selector": "Optional entity that selects which schedule is active.",
+                    "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
+                    "holiday_use_day": "Which weekday schedule to use on public holidays."
                 }
             }
         },
@@ -752,8 +768,8 @@
             }
         },
         "number": {
-            "weather_offset": {
-                "name": "Weather Anticipation Offset"
+            "sunshine_offset_value": {
+                "name": "Sunshine Offset Value"
             },
             "away_offset": {
                 "name": "Away Offset"
@@ -820,8 +836,8 @@
             "optimum_start": {
                 "name": "Smart Preheating"
             },
-            "weather_anticipation": {
-                "name": "Weather Anticipation"
+            "sunshine_offset": {
+                "name": "Sunshine Offset"
             },
             "force_eco_switch": {
                 "name": "Force Eco Temperature"
@@ -890,6 +906,17 @@
             }
         },
         "liming_day": {
+            "options": {
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday",
+                "sun": "Sunday"
+            }
+        },
+        "holiday_use_day": {
             "options": {
                 "mon": "Monday",
                 "tue": "Tuesday",

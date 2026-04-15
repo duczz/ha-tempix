@@ -143,8 +143,8 @@ async def async_get_config_entry_diagnostics(
             "force_comfort": engine.is_force_comfort_temp(),
             "force_eco": engine.is_force_eco_temp(),
             "is_optimum_start_active": engine.is_optimum_start_active(),
-            "is_weather_anticipation_active": engine.is_weather_anticipation_active(),
-            "weather_offset": engine.get_weather_offset(),
+            "is_sunshine_offset_active": engine.is_sunshine_offset_active(),
+            "sunshine_offset": engine.get_sunshine_offset(),
             "uncertainty_reasons": engine.get_uncertainty_reasons(),
         },
         "decision_logic": {
@@ -160,6 +160,7 @@ async def async_get_config_entry_diagnostics(
             "active_calendar_event": engine._get_active_calendar_event(active_only=False),
             "calendar_tags": engine.get_calendar_tags(),
             "fetched_calendar_events": _redact_calendar_events(engine._calendar_events),
+            "fetched_schedule_slots": engine._schedule_slots,
             "schedule_period": engine.get_active_schedule_period(),
             "next_schedule_transition": engine.get_next_schedule_transition(),
         },
@@ -178,7 +179,7 @@ async def async_get_config_entry_diagnostics(
             "engine_startup": startup.isoformat() if startup else None,
             "coordinator_ready": ready.isoformat() if ready else None,
             "uptime_seconds": (now - startup).total_seconds() if startup else None,
-            "last_update": last_update if isinstance(last_update, str) else str(last_update) if last_update else None,
+            "last_update": last_update,
         },
     }
 

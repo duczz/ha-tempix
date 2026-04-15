@@ -1,6 +1,6 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
 [![HA Version](https://img.shields.io/badge/HA%20Minimum-2024.6.0-blue)](https://www.home-assistant.io)
-[![Version](https://img.shields.io/badge/Version-1.6.2-green)](https://github.com/duczz/ha-tempix/releases)
+[![Version](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/duczz/ha-tempix/main/custom_components/tempix/manifest.json&query=$.version&label=Version&color=green)](https://github.com/duczz/ha-tempix/releases)
 [![IoT Class](https://img.shields.io/badge/IoT%20Class-local__push-brightgreen)](https://www.home-assistant.io/integrations)
 
 # 🏠 Tempix

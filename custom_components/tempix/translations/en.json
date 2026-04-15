@@ -28,8 +28,8 @@
             }
         },
         "number": {
-            "weather_offset": {
-                "name": "Weather Anticipation Offset"
+            "sunshine_offset_value": {
+                "name": "Sunshine Offset Value"
             },
             "away_offset": {
                 "name": "Away Offset"
@@ -90,8 +90,8 @@
             "optimum_start": {
                 "name": "Smart Preheating"
             },
-            "weather_anticipation": {
-                "name": "Weather Anticipation"
+            "sunshine_offset": {
+                "name": "Sunshine Offset"
             },
             "force_eco_switch": {
                 "name": "Force Eco Temperature"

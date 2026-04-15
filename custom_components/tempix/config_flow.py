@@ -138,13 +138,13 @@ from custom_components.tempix.const import (
     CONF_CALENDAR,
     CONF_CALENDAR_EVENT,
     CONF_CALENDAR_ROOM,
-    CONF_CALENDAR_COMFORT_TEMP,
-    CONF_CALENDAR_ECO_TEMP,
     CONF_CALENDAR_SCAN_INTERVAL,
     CONF_SYNC_CALENDAR_WITH_ENTITIES,
     DEFAULT_CALENDAR_SCAN_INTERVAL,
-    DEFAULT_CALENDAR_COMFORT_TEMP,
-    DEFAULT_CALENDAR_ECO_TEMP,
+    CONF_HOLIDAY_CALENDAR,
+    CONF_HOLIDAY_USE_DAY,
+    MIN_CALENDAR_SCAN_INTERVAL,
+    MAX_CALENDAR_SCAN_INTERVAL,
 )
 
 
@@ -403,8 +403,10 @@ class TempixCommonFlow:
                 vol.Optional(CONF_CALENDAR, default=self._get_list_default(CONF_CALENDAR)): _entity_sel("calendar", multiple=True),
                 vol.Optional(CONF_CALENDAR_EVENT, default=self._get_default(CONF_CALENDAR_EVENT, "")): _text_sel(),
                 vol.Optional(CONF_CALENDAR_ROOM, default=self._get_default(CONF_CALENDAR_ROOM, "")): _text_sel(),
-                vol.Optional(CONF_CALENDAR_SCAN_INTERVAL, default=self._get_default(CONF_CALENDAR_SCAN_INTERVAL, DEFAULT_CALENDAR_SCAN_INTERVAL)): _number_sel(2, 60, 1, mode="slider", unit="min"),
+                vol.Optional(CONF_CALENDAR_SCAN_INTERVAL, default=self._get_default(CONF_CALENDAR_SCAN_INTERVAL, DEFAULT_CALENDAR_SCAN_INTERVAL)): _number_sel(MIN_CALENDAR_SCAN_INTERVAL, MAX_CALENDAR_SCAN_INTERVAL, 1, mode="slider", unit="min"),
                 vol.Optional(CONF_SYNC_CALENDAR_WITH_ENTITIES, default=self._get_default(CONF_SYNC_CALENDAR_WITH_ENTITIES, False)): _bool_sel(),
+                self._entity_schema_key(CONF_HOLIDAY_CALENDAR): _entity_sel("calendar"),
+                vol.Optional(CONF_HOLIDAY_USE_DAY, default=self._get_default(CONF_HOLIDAY_USE_DAY, "sun")): _select_sel(["mon", "tue", "wed", "thu", "fri", "sat", "sun"], translation_key="holiday_use_day", mode=selector.SelectSelectorMode.DROPDOWN),
             }),
         )
 
@@ -422,6 +424,8 @@ class TempixCommonFlow:
             data_schema=vol.Schema({
                 vol.Optional(CONF_SCHEDULERS, default=self._get_list_default(CONF_SCHEDULERS)): _entity_sel(["schedule", "input_boolean", "binary_sensor"], multiple=True),
                 self._entity_schema_key(CONF_SCHEDULER_SELECTOR): _entity_sel(),
+                self._entity_schema_key(CONF_HOLIDAY_CALENDAR): _entity_sel("calendar"),
+                vol.Optional(CONF_HOLIDAY_USE_DAY, default=self._get_default(CONF_HOLIDAY_USE_DAY, "sun")): _select_sel(["mon", "tue", "wed", "thu", "fri", "sat", "sun"], translation_key="holiday_use_day", mode=selector.SelectSelectorMode.DROPDOWN),
             }),
         )
 

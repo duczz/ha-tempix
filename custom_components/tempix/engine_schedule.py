@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta, UTC
 
 from homeassistant.const import STATE_ON, STATE_OFF
+from homeassistant.util import dt as dt_util
 
 from custom_components.tempix.const import (
     SCHEDULING_MODE_CALENDAR,
@@ -87,6 +88,11 @@ class ScheduleMixin:
 
     def is_scheduler_active(self) -> bool | None:
         """Return scheduler state. ``None`` if uncertain."""
+        # Holiday override: use calendar events (if available) to check comfort
+        # based on the delegated holiday_use_day, ignoring the active scheduler.
+        if self.is_holiday_today() and self.config.holiday_use_day and self.config.calendar:
+            return self._is_holiday_comfort_via_calendar()
+
         sched = self.get_active_scheduler()
         if sched is None:
             return False

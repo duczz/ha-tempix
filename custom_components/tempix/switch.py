@@ -19,7 +19,7 @@ from custom_components.tempix.const import (
     CONF_AUTOMATION_ACTIVE,
     CONF_MANUAL_OVERRIDE_PAUSE,
     CONF_OPTIMUM_START,
-    CONF_WEATHER_ANTICIPATION,
+    CONF_SUNSHINE_OFFSET,
     CONF_FORCE_COMFORT_SWITCH,
     CONF_FORCE_ECO_SWITCH,
 )
@@ -64,15 +64,15 @@ async def async_setup_entry(
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_WEATHER_ANTICIPATION, "Weather Anticipation", "mdi:weather-sunny-alert"
+            CONF_SUNSHINE_OFFSET, "Sunshine Offset", "mdi:weather-sunny-alert"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_FORCE_ECO_SWITCH, "Force Eco Temperatur", "mdi:leaf"
+            CONF_FORCE_ECO_SWITCH, "Force Eco Temperature", "mdi:leaf"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_FORCE_COMFORT_SWITCH, "Force Comfort Temperatur", "mdi:fire-alert"
+            CONF_FORCE_COMFORT_SWITCH, "Force Comfort Temperature", "mdi:fire-alert"
         ),
     ])
 
@@ -141,16 +141,26 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
                     entity.async_write_ha_state()
                     break
 
-        self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         setattr(self.coordinator.config, self.key, True)
+        self.coordinator.config._raw[self.key] = True
+        if sibling_key:
+            self.coordinator.config._raw[sibling_key] = False
+        _LOGGER.debug("TPX Switch [%s]: turn_on key=%s, updating entry options", self.entry.title, self.key)
+        self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()
+        _LOGGER.debug("TPX Switch [%s]: turn_on key=%s, calling async_request_refresh", self.entry.title, self.key)
         await self.coordinator.async_request_refresh()
+        _LOGGER.debug("TPX Switch [%s]: turn_on key=%s, refresh complete", self.entry.title, self.key)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         new_options = dict(self.entry.options)
         new_options[self.key] = False
-        self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         setattr(self.coordinator.config, self.key, False)
+        self.coordinator.config._raw[self.key] = False
+        _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, updating entry options", self.entry.title, self.key)
+        self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()
+        _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, calling async_request_refresh", self.entry.title, self.key)
         await self.coordinator.async_request_refresh()
+        _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, refresh complete", self.entry.title, self.key)

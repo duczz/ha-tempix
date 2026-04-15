@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, time as dt_time, UTC
+
+time_min = dt_time(0, 0, 0)
 from typing import Any
 
 from homeassistant.const import STATE_ON, STATE_OFF, STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -26,6 +28,12 @@ from custom_components.tempix.const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_SHORT_TO_FULL = {
+    "mon": "monday", "tue": "tuesday", "wed": "wednesday",
+    "thu": "thursday", "fri": "friday", "sat": "saturday", "sun": "sunday",
+}
+_WEEKDAY_SHORT = {0: "mon", 1: "tue", 2: "wed", 3: "thu", 4: "fri", 5: "sat", 6: "sun"}
 
 
 class CalendarMixin:
@@ -119,6 +127,12 @@ class CalendarMixin:
                     for loc in ([l.strip().lower() for l in re.split(r"[,;]", (ev.get("location") or "")) if l.strip()] or [""])
                 )
             ]
+            if not filtered:
+                # Fallback: match against event summary (for calendars without location fields)
+                filtered = [
+                    ev for ev in candidates
+                    if any(rf in (ev.get("summary") or "").lower() for rf in room_filters)
+                ]
             if filtered:
                 candidates = filtered
 
@@ -130,6 +144,47 @@ class CalendarMixin:
 
         return max(candidates, key=_duration)
 
+    def _score_event(
+        self,
+        ev: dict,
+        is_active: bool,
+        found_prio: int,
+        now: datetime,
+    ) -> tuple[int, float, int, int, int]:
+        """Return a scoring tuple for an event (lower = better).
+
+        Dimensions (in priority order):
+        1. tier       — active (0) beats inactive (1)
+        2. time_dist  — closer in time beats farther; past events penalised by 1e9
+        3. found_prio — earlier keyword in filter list beats later
+        4. duration_prio — timed event (0) beats all-day (1)
+        5. cal_idx    — earlier calendar in config beats later
+        """
+        start_dt = self._parse_dt(ev.get("start_time"))
+        end_dt = self._parse_dt(ev.get("end_time"))
+
+        tier = 0 if is_active else 1
+
+        time_dist = 0.0
+        if not is_active:
+            if start_dt and start_dt > now:
+                time_dist = (start_dt - now).total_seconds()
+            elif end_dt and end_dt <= now:
+                time_dist = (now - end_dt).total_seconds() + 1_000_000_000.0
+
+        is_all_day = ev.get("all_day", False) or (
+            start_dt and end_dt
+            and start_dt.hour == 0 and start_dt.minute == 0
+            and end_dt.hour == 0 and end_dt.minute == 0
+        )
+        duration_prio = 1 if is_all_day else 0
+
+        calendars = self.config.calendar
+        cal_id = ev.get("calendar_id")
+        cal_idx = calendars.index(cal_id) if cal_id in calendars else 99
+
+        return (tier, time_dist, found_prio, duration_prio, cal_idx)
+
     def _process_event_list(self, events: list[dict], active_only: bool = True, use_at_state: bool = False) -> dict | None:
         """Find the best matching event from a list (filter + priority)."""
         event_filters = self.config.calendar_event
@@ -140,12 +195,8 @@ class CalendarMixin:
         if event_filters:
             filters = [f.strip().lower() for f in re.split(r"[,;]", event_filters) if f.strip()]
 
-        best_event = None
-        best_prio = 999
-        best_tier = 9
-        best_duration_prio = 9
-        best_cal_idx = 99
-        best_time_dist = 0.0
+        best_event: dict | None = None
+        best_score: tuple | None = None
 
         for ev in events:
             if "start" in ev and "start_time" not in ev:
@@ -175,9 +226,7 @@ class CalendarMixin:
                 event_locations = [loc.strip().lower() for loc in re.split(r"[,;]", location) if loc.strip()]
                 if not event_locations:
                     event_locations = [""]
-
-                match_found = any(rf in el for rf in room_filters for el in event_locations)
-                if not match_found:
+                if not any(rf in el for rf in room_filters for el in event_locations):
                     continue
 
             found_prio = 999
@@ -189,37 +238,10 @@ class CalendarMixin:
                 if found_prio == 999:
                     continue
 
-            is_all_day = start_dt and end_dt and start_dt.hour == 0 and start_dt.minute == 0 and end_dt.hour == 0 and end_dt.minute == 0
-            current_tier = 0 if is_active else 1
-            duration_prio = 1 if is_all_day else 0
-
-            time_dist = 0.0
-            if not is_active:
-                if start_dt and start_dt > now:
-                    time_dist = (start_dt - now).total_seconds()
-                elif end_dt and end_dt <= now:
-                    time_dist = (now - end_dt).total_seconds() + 1_000_000_000.0
-
-            calendars = self.config.calendar
-            cal_id = ev.get("calendar_id")
-            cal_idx = calendars.index(cal_id) if cal_id in calendars else 99
-
-            is_better = False
-            if best_event is None:
-                is_better = True
-            else:
-                current_score = (current_tier, time_dist, found_prio, duration_prio, cal_idx)
-                best_score = (best_tier, best_time_dist, best_prio, best_duration_prio, best_cal_idx)
-                if current_score < best_score:
-                    is_better = True
-
-            if is_better:
-                best_prio = found_prio
+            score = self._score_event(ev, is_active, found_prio, now)
+            if best_score is None or score < best_score:
                 best_event = ev
-                best_tier = current_tier
-                best_time_dist = time_dist
-                best_duration_prio = duration_prio
-                best_cal_idx = cal_idx
+                best_score = score
 
         return best_event
 
@@ -323,9 +345,38 @@ class CalendarMixin:
             return "Keine Zeitspanne"
 
         # Helper Mode
+        # Holiday suffix: show delegated weekday label when holiday override is active
+        holiday_suffix = ""
+        target_day = None
+        if self.is_holiday_today() and self.config.holiday_use_day:
+            target_day = self.config.holiday_use_day.lower()
+            lang = (self.hass.config.language or "en")[:2].lower()
+            labels = _DAY_LABELS.get(lang, _DAY_LABELS["en"])
+            holiday_suffix = f" ({labels.get(target_day, target_day)})"
+
         sched_id = self.get_active_scheduler()
         if sched_id:
             state = self._get_state(sched_id)
+
+            # Try to get start+end from cached schedule slots
+            slot = self._get_active_schedule_slot(sched_id, target_day)
+            if slot:
+                start_str = slot.get("start", "")
+                end_str = slot.get("end", "")
+                start_fmt = start_str[:5] if start_str else None
+                end_fmt = end_str[:5] if end_str else None
+                if start_fmt and end_fmt:
+                    if slot.get("is_active", True):
+                        # Active Comfort slot → show Comfort timespan
+                        return f"{start_fmt} - {end_fmt}{holiday_suffix}"
+                    else:
+                        # Eco phase → show Eco timespan (last slot end → next slot start)
+                        eco = self._get_eco_timespan(sched_id, target_day)
+                        if eco:
+                            return f"{eco}{holiday_suffix}"
+                        return f"{start_fmt} - {end_fmt}{holiday_suffix}"
+
+            # Fallback: next_event attribute
             if state:
                 prefix = "Heizen bis" if state.state == STATE_ON else "Sparbetrieb bis"
                 for attr in ["next_event", "next_trigger", "next_transition", "next_occurrence"]:
@@ -333,9 +384,138 @@ class CalendarMixin:
                     dt = self._parse_dt(next_ev)
                     if dt:
                         tz = dt_util.get_time_zone(self.hass.config.time_zone)
-                        return f"{prefix} {dt.astimezone(tz).strftime('%H:%M')}"
+                        return f"{prefix} {dt.astimezone(tz).strftime('%H:%M')}{holiday_suffix}"
 
         return "Keine Zeitspanne"
+
+    def _get_active_schedule_slot(self, sched_id: str, target_day: str | None = None) -> dict | None:
+        """Return the active or next slot for a scheduler, optionally for a specific weekday.
+
+        Schedule response structure: {weekday_full: [{'from': time, 'to': time}]}
+        e.g. {'monday': [{'from': time(16,30), 'to': time(21,0)}], 'sunday': [...]}
+
+        target_day: short name e.g. 'sun' → maps to 'sunday'.
+        If None: use today's weekday.
+        Returns dict with 'start' and 'end' as HH:MM strings.
+        """
+        schedule = self._schedule_slots.get(sched_id, {})
+        if not schedule:
+            return None
+
+        tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        now_local = datetime.now(tz)
+
+        if target_day:
+            full_day = _SHORT_TO_FULL.get(target_day.lower(), target_day.lower())
+        else:
+            full_day = _SHORT_TO_FULL[_WEEKDAY_SHORT[now_local.weekday()]]
+
+        day_slots = schedule.get(full_day, [])
+        if not day_slots:
+            return None
+
+        current_time = now_local.time()
+
+        # Find active slot (current time within from–to)
+        for slot in day_slots:
+            t_from = slot.get("from")
+            t_to = slot.get("to")
+            if t_from and t_to and t_from <= current_time < t_to:
+                return {
+                    "start": t_from.strftime("%H:%M"),
+                    "end": t_to.strftime("%H:%M"),
+                    "is_active": True,
+                }
+
+        # No active slot — return next upcoming slot
+        future = [s for s in day_slots if s.get("from") and s["from"] > current_time]
+        if future:
+            s = min(future, key=lambda x: x["from"])
+            return {"start": s["from"].strftime("%H:%M"), "end": s["to"].strftime("%H:%M"), "is_active": False}
+
+        # All slots past — return first slot of the day
+        s = min(day_slots, key=lambda x: x.get("from", datetime.min.time()))
+        return {"start": s["from"].strftime("%H:%M"), "end": s["to"].strftime("%H:%M"), "is_active": False}
+
+    def _get_eco_timespan(self, sched_id: str, target_day: str | None = None) -> str | None:
+        """Return the current Eco timespan as 'HH:MM - HH:MM' (last slot end → next slot start).
+
+        Called when no Comfort slot is currently active.
+        """
+        schedule = self._schedule_slots.get(sched_id, {})
+        if not schedule:
+            return None
+
+        tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        now_local = datetime.now(tz)
+
+        if target_day:
+            full_day = _SHORT_TO_FULL.get(target_day.lower(), target_day.lower())
+        else:
+            full_day = _SHORT_TO_FULL[_WEEKDAY_SHORT[now_local.weekday()]]
+
+        day_slots = schedule.get(full_day, [])
+        if not day_slots:
+            return None
+
+        current_time = now_local.time()
+
+        # Last slot that ended before now → Eco start
+        past = [s for s in day_slots if s.get("to") and s["to"] <= current_time]
+        # Next slot that starts after now → Eco end
+        future = [s for s in day_slots if s.get("from") and s["from"] > current_time]
+
+        if past:
+            eco_start = max(past, key=lambda x: x["to"])["to"].strftime("%H:%M")
+        else:
+            # No past slot today — look backwards through previous days for last slot end
+            eco_start = "00:00"
+            for offset in range(1, 7):
+                prev_day = _WEEKDAY_SHORT[(now_local.weekday() - offset) % 7]
+                prev_full = _SHORT_TO_FULL[prev_day]
+                prev_slots = schedule.get(prev_full, [])
+                if prev_slots:
+                    s = max(prev_slots, key=lambda x: x.get("to", time_min))
+                    eco_start = s["to"].strftime("%H:%M")
+                    break
+
+        if future:
+            eco_end = min(future, key=lambda x: x["from"])["from"].strftime("%H:%M")
+        else:
+            # No future slot today — look forwards through next days for first slot start
+            eco_end = "00:00"
+            for offset in range(1, 7):
+                next_day = _WEEKDAY_SHORT[(now_local.weekday() + offset) % 7]
+                next_full = _SHORT_TO_FULL[next_day]
+                next_slots = schedule.get(next_full, [])
+                if next_slots:
+                    s = min(next_slots, key=lambda x: x.get("from", time_min))
+                    eco_end = s["from"].strftime("%H:%M")
+                    break
+
+        return f"{eco_start} - {eco_end}"
+
+    # ── Holiday detection ────────────────────────────────────────────────────
+
+    def is_holiday_today(self) -> bool:
+        """Return True if today is a holiday according to holiday_calendar."""
+        cal_id = self.config.holiday_calendar
+        if not cal_id:
+            return False
+        # Primary: check entity state directly (works even when get_events returns nothing)
+        state = self.hass.states.get(cal_id)
+        if state and state.state == STATE_ON:
+            return True
+        # Fallback: check fetched events (for calendars that support get_events)
+        now = datetime.now(UTC)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
+        for ev in self._calendar_events.get(cal_id, []):
+            start = self._parse_dt(ev.get("start_time") or ev.get("start"))
+            end = self._parse_dt(ev.get("end_time") or ev.get("end"))
+            if start and end and start <= today_end and end >= today_start:
+                return True
+        return False
 
     # ── calendar overrides / tags ─────────────────────────────────────────────
 
@@ -407,6 +587,11 @@ class CalendarMixin:
             sched_match = re.search(r"use_scheduler:\s*([^\n]+)", description, re.IGNORECASE)
             if sched_match:
                 tags["use_scheduler"] = sched_match.group(1).strip()
+
+        # Holiday override: replace use_day with holiday_use_day if today is a holiday
+        if depth == 0 and self.is_holiday_today() and self.config.holiday_use_day:
+            tags["use_day"] = self.config.holiday_use_day.lower()
+            tags.pop("_delegated_event", None)
 
         # Handle Inheritance
         forced_day = tags.get("use_day")
@@ -506,6 +691,46 @@ class CalendarMixin:
                 return True
 
         return False
+
+    def _is_holiday_comfort_via_calendar(self) -> bool | None:
+        """Check comfort for holiday override in helper mode.
+
+        Directly looks up the delegated weekday (holiday_use_day) in the
+        calendar events and checks whether the current time falls within
+        that day's comfort window. Does not depend on a today-event being
+        present in the calendar — only the target weekday events matter.
+        """
+        day_name = self.config.holiday_use_day
+        if not day_name:
+            return False
+
+        # Find the reference event for the target weekday across all calendars
+        delegated_event = self._get_delegated_event(None, day_name.lower())
+        if not delegated_event:
+            return False
+
+        d_start = self._parse_dt(delegated_event.get("start_time") or delegated_event.get("start"))
+        d_end = self._parse_dt(delegated_event.get("end_time") or delegated_event.get("end"))
+
+        if not d_start or not d_end:
+            return False
+
+        # Project the weekday event's times onto today
+        now_local = dt_util.now()
+        start_time = now_local.replace(hour=d_start.hour, minute=d_start.minute, second=0, microsecond=0)
+        end_time = now_local.replace(hour=d_end.hour, minute=d_end.minute, second=0, microsecond=0)
+
+        if end_time < start_time:
+            if now_local >= start_time:
+                end_time += timedelta(days=1)
+            else:
+                start_time -= timedelta(days=1)
+
+        start_utc = start_time.astimezone(UTC)
+        end_utc = end_time.astimezone(UTC)
+        now = datetime.now(UTC)
+
+        return start_utc <= now < end_utc
 
     def _get_daily_time_window_dt(self, description: str) -> tuple[datetime | None, datetime | None]:
         """Parse ``time: HH:MM - HH:MM`` from description and return as today's datetimes."""

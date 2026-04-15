@@ -34,6 +34,7 @@ Vielen Dank für deine Unterstützung! ❤️
 - **☀️ Sunshine Offset** – Reduziert Comfort-Temp bei Sonnenschein (nur `sunny`)
 - **🎉 Feiertags-Erkennung** – Automatischer Zeitplan-Wechsel an Feiertagen via HA Holiday-Integration
 - **🎉 Party- & Gäste-Modus** – Mit optionalem Auto-Timer via Service
+- **✈️ Urlaubs-Modus** – Eigene Urlaubstemperatur, per Switch oder Kalender-Event aktivierbar
 - **🏖️ Saison-Modus** – Außentemperatur-Gate mit Hysterese verhindert stetes Hin- und Herschalten
 - **🔧 Ventilpositionierung** – Direkte Ventil-% Steuerung für unterstützte TRVs
 - **🔄 Dynamic Reload** – Temperatures, Offsets & Switches sofort live ohne Neustart
@@ -102,7 +103,7 @@ Die Konfiguration erfolgt vollständig über den **Config Flow** (6 Schritte):
 [Externe Entities (TRV, Sensoren, Kalender)]
               ↓ State Change Events
      [Coordinator – Event-Loop / Debounce]
-              ↓  asyncio.Semaphore(3)
+              ↓  Adaptive Concurrency (skaliert mit TRV-Anzahl)
          [Engine – 7 Mixins]
               ↓
     [calculate_target_temp + hvac_mode]
@@ -176,7 +177,7 @@ cards:
 | [Administrator-Handbuch](.docs/admin_handbuch.md) | Technisch: Architektur, Alle Parameter, Debugging |
 | [Endanwender-Handbuch](.docs/endanwender_handbuch.md) | Praktisch: Jede Funktion mit Beispiel & Schritt-für-Schritt |
 | [Changelog](CHANGELOG.md) | Alle Versionen mit Details |
-| [Release Notes v1.6.0](release_notes_v160.md) | Was ist neu in v1.6.0 |
+
 
 ---
 

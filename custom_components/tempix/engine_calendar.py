@@ -325,6 +325,8 @@ class CalendarMixin:
                         return f"00:00 - 23:59{suffix}"
 
                 if tags.get("use_scheduler"):
+                    requested = tags["use_scheduler"]
+                    warn_key = f"use_scheduler:{requested}"
                     sched_id = self.get_active_scheduler()
                     if sched_id:
                         state = self._get_state(sched_id)
@@ -336,7 +338,14 @@ class CalendarMixin:
                                 dt = self._parse_dt(next_ev)
                                 if dt:
                                     end_str = dt.astimezone(tz).strftime('%H:%M')
+                                    self._calendar_warned.discard(warn_key)
                                     return f"{prefix} {end_str} ({state.attributes.get('friendly_name')}){suffix}"
+                    if warn_key not in self._calendar_warned:
+                        _LOGGER.warning(
+                            "Tempix [%s]: use_scheduler '%s' not resolvable — using fallback display",
+                            self.config.name, requested,
+                        )
+                        self._calendar_warned.add(warn_key)
 
                 if is_all_day:
                     return "Ganztägig"
@@ -539,7 +548,8 @@ class CalendarMixin:
         if not event:
             return {}
 
-        description = (event.get("description") or "").strip()
+        raw_desc = (event.get("description") or "").strip()
+        description = "\n".join(l for l in raw_desc.splitlines() if not l.strip().startswith("#"))
         tags: dict[str, Any] = {}
 
         if description:
@@ -598,12 +608,20 @@ class CalendarMixin:
         if forced_day:
             source_cal_id = event.get("calendar_id") if event else None
             delegated_event = self._get_delegated_event(source_cal_id, forced_day)
+            warn_key = f"use_day:{forced_day}"
             if delegated_event:
                 parent_tags = self.get_calendar_tags(event=delegated_event, active_only=False, depth=depth + 1)
                 for k, v in parent_tags.items():
                     if k not in tags:
                         tags[k] = v
                 tags["_delegated_event"] = delegated_event
+                self._calendar_warned.discard(warn_key)
+            elif warn_key not in self._calendar_warned:
+                _LOGGER.warning(
+                    "Tempix [%s]: use_day '%s' not found in calendar — falling back to normal schedule",
+                    self.config.name, forced_day,
+                )
+                self._calendar_warned.add(warn_key)
 
         return tags
 
@@ -706,8 +724,16 @@ class CalendarMixin:
 
         # Find the reference event for the target weekday across all calendars
         delegated_event = self._get_delegated_event(None, day_name.lower())
+        warn_key = f"holiday_use_day:{day_name.lower()}"
         if not delegated_event:
+            if warn_key not in self._calendar_warned:
+                _LOGGER.warning(
+                    "Tempix [%s]: holiday_use_day '%s' not found in calendar — falling back to normal schedule",
+                    self.config.name, day_name,
+                )
+                self._calendar_warned.add(warn_key)
             return False
+        self._calendar_warned.discard(warn_key)
 
         d_start = self._parse_dt(delegated_event.get("start_time") or delegated_event.get("start"))
         d_end = self._parse_dt(delegated_event.get("end_time") or delegated_event.get("end"))

@@ -756,6 +756,27 @@
                     "away": "Abwesend",
                     "inactive": "Inaktiv"
                 }
+            },
+            "target_temperature": {
+                "name": "Ziel-Temperatur"
+            },
+            "external_temperature": {
+                "name": "Externer Raumsensor"
+            },
+            "outside_temperature": {
+                "name": "Außentemperatur"
+            },
+            "active_adjustment": {
+                "name": "Aktive Anpassung"
+            },
+            "active_scheduler": {
+                "name": "Aktiver Zeitplan"
+            },
+            "active_schedule_period": {
+                "name": "Aktiver Zeitraum"
+            },
+            "calibration_offset": {
+                "name": "Kalibrierungs-Offset"
             }
         },
         "select": {

@@ -71,6 +71,7 @@ class TempixSelect(SelectEntity, RestoreEntity):
         self._attr_translation_key = key
         self._attr_options = options or []
         self._attr_icon = icon
+        self._restored_option: str | None = None
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
@@ -79,6 +80,10 @@ class TempixSelect(SelectEntity, RestoreEntity):
             model="Tempix",
             sw_version=VERSION,
         )
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator._updates_enabled
 
     @property
     def current_option(self) -> str | None:
@@ -97,7 +102,6 @@ class TempixSelect(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore last known state on startup."""
         await super().async_added_to_hass()
-        self._restored_option: str | None = None
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state not in ("unknown", "unavailable"):
             if last_state.state in self._attr_options:

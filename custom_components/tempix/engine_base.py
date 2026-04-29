@@ -51,6 +51,7 @@ class EngineBaseMixin:
         self._last_outside_ok: bool | None = None  # hysteresis state for outside threshold
         self._guest_warned: set[str] = set()  # O-5: warn once per unavailable guest entity
         self._reboot_logged: set[str] = set()  # log reboot/initial-state detection only once per entity per boot
+        self._calendar_warned: set[str] = set()  # warn once per failed calendar lookup (use_day, use_scheduler, holiday_use_day)
 
     # ── injection ────────────────────────────────────────────────────────────
 

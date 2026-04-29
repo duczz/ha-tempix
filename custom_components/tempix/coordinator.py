@@ -13,8 +13,8 @@ from datetime import timedelta, datetime, UTC
 
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, Event, callback
-from homeassistant.helpers import entity_registry as er_helper
 from homeassistant.util import dt as dt_util
+from homeassistant.helpers import entity_registry as er_helper
 from homeassistant.helpers.event import (
     async_track_state_change_event,
     async_call_later,
@@ -22,8 +22,9 @@ from homeassistant.helpers.event import (
 )
 
 from custom_components.tempix.const import (
-    DOMAIN,
     CONF_LEARNED_HEATING_RATE,
+    CONF_PARTY_MODE_SWITCH,
+    CONF_GUEST_MODE_SWITCH,
     CALIBRATION_MODE_OFF,
     AGGRESSIVE_MODE_CALIBRATION,
     SCHEDULING_MODE_CALENDAR,
@@ -40,6 +41,7 @@ from custom_components.tempix.coordinator_appliers import (
     safe_service_call,
 )
 from custom_components.tempix.coordinator_learning import HeatingRateLearner
+from homeassistant.helpers.storage import Store
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,14 +65,11 @@ class TempixCoordinator:
         self._listeners: list = []
         self._last_update: dict | None = None
         self._trigger_timer: Any = None
-        self._heartbeat_timer: Any = None
         self._reeval_timer: Any = None
-        self._calendar_timer: Any = None
         self._update_lock = asyncio.Lock()
         self._updates_enabled = False
         self._ready_time: datetime | None = None
         self._uncertainty_start_time: datetime | None = None
-        self._schedule_timer: Any = None
 
         # Public state for sensors
         self.current_hvac: str = "off"
@@ -88,6 +87,7 @@ class TempixCoordinator:
         # Circuit breaker: tracks consecutive failures per TRV entity
         # { entity_id: {"failures": int, "retry_after": datetime | None} }
         self._cb_state: dict[str, dict] = {}
+        self._cb_store = Store(hass, 1, f"tempix.cb_state.{entry_id}")
 
         # ── helper objects ────────────────────────────────────────────────
         self._scene_manager = SceneManager(
@@ -95,6 +95,7 @@ class TempixCoordinator:
             config.trvs,
             config.action_delay.total_seconds(),
             config.name,
+            entry_id,
         )
         self._calib_applier = CalibrationApplier(hass, config, engine, config.name)
         self._valve_positioner = ValvePositioner(hass, config, engine, config.name)
@@ -120,8 +121,8 @@ class TempixCoordinator:
     ) -> None:
         """Set an option temporarily or permanently and handle timers."""
         # P1 Fix (F-FM-1): Input validation
-        if not self._validate_option(key, value):
-            _LOGGER.error("%s: Invalid option value for %s: %s", self.config.name, key, value)
+        if not self._validate_option(key, value, duration_mins):
+            _LOGGER.error("%s: Invalid option value for %s: %s (duration=%s)", self.config.name, key, value, duration_mins)
             return
 
         # Cancel existing timer for this key if any
@@ -130,14 +131,7 @@ class TempixCoordinator:
             del self._option_timers[key]
 
         # Update the option in the config entry
-        entry_id = next(
-            (eid for eid, data in self.hass.data.get(DOMAIN, {}).items()
-             if data.get("coordinator") == self),
-            None,
-        )
-        if entry_id is None:
-            _LOGGER.warning("%s: async_set_temporary_option called before coordinator was registered", self.config.name)
-            return
+        entry_id = self.entry_id
         entry = self.hass.config_entries.async_get_entry(entry_id)
         if not entry:
             return
@@ -186,12 +180,42 @@ class TempixCoordinator:
             except Exception as exc:
                 _LOGGER.error("Error in entity callback: %s", exc, exc_info=True)
 
+    # ── circuit breaker persistence ──────────────────────────────────────────
+
+    async def _cb_load(self) -> None:
+        try:
+            stored = await self._cb_store.async_load()
+            if stored:
+                for eid, state in stored.items():
+                    retry_raw = state.get("retry_after")
+                    self._cb_state[eid] = {
+                        "failures": state.get("failures", 0),
+                        "retry_after": datetime.fromisoformat(retry_raw) if retry_raw else None,
+                    }
+        except Exception as exc:
+            _LOGGER.warning("%s: Failed to load circuit breaker state: %s", self.config.name, exc)
+
+    async def _cb_save(self) -> None:
+        try:
+            serialized = {
+                eid: {
+                    "failures": state["failures"],
+                    "retry_after": state["retry_after"].isoformat() if state["retry_after"] else None,
+                }
+                for eid, state in self._cb_state.items()
+            }
+            await self._cb_store.async_save(serialized)
+        except Exception as exc:
+            _LOGGER.warning("%s: Failed to save circuit breaker state: %s", self.config.name, exc)
+
     # ── lifecycle ────────────────────────────────────────────────────────────
 
     async def async_setup(self) -> None:
         """Register listeners matching every blueprint trigger."""
         self.debug_log(f"Starting coordinator setup (ID: {self.entry_id[:6]})")
         await self._scene_manager.async_load()
+        await self._rate_learner.async_load()
+        await self._cb_load()
         # M-C: Discard any window scene saved before this boot. TRVs may have been
         # manually changed during the downtime; restoring stale states would undo that.
         # If the window is still open after restart, Tempix will set eco immediately anyway.
@@ -227,9 +251,9 @@ class TempixCoordinator:
         needs_initial_update = True
 
         if self.config.scheduling_mode == SCHEDULING_MODE_CALENDAR or self.config.holiday_calendar:
-            self._calendar_timer = async_track_time_interval(
+            self._listeners.append(async_track_time_interval(
                 self.hass, self._async_fetch_and_update_calendar, interval
-            )
+            ))
             # Attempt an immediate fetch. Cloud calendars (e.g. Google) that haven't
             # finished their server sync will fail silently (debug-level) and retry
             # on the next state-change or periodic timer.
@@ -241,9 +265,9 @@ class TempixCoordinator:
             needs_initial_update = False
 
         if self.config.scheduling_mode != SCHEDULING_MODE_CALENDAR and self.config.schedulers:
-            self._schedule_timer = async_track_time_interval(
+            self._listeners.append(async_track_time_interval(
                 self.hass, self._async_fetch_and_update_schedule, interval
-            )
+            ))
             await self._async_fetch_and_update_schedule()
             needs_initial_update = False
 
@@ -383,22 +407,17 @@ class TempixCoordinator:
             self.config.scheduler_presence,
             self.config.season_mode_entity,
             self.config.outside_temp_sensor,
-            self.config.aggressive_mode_selector,
         ):
             add_if_entity(val)
 
         # Calendars (v1.4.0)
         add_if_entity(self.config.calendar)
 
-        # Proximity Device Entities
-        prox_device_id = self.config.proximity_entity
-        if prox_device_id:
-            try:
-                ent_reg = er_helper.async_get(self.hass)
-                for entry in er_helper.async_entries_for_device(ent_reg, prox_device_id):
-                    tracked.append(entry.entity_id)
-            except Exception as exc:
-                self.debug_log(f"Failed to track proximity device entities: {exc}")
+        # Proximity: config holds a device_id — track all its entities
+        if self.config.proximity_entity:
+            ent_reg = er_helper.async_get(self.hass)
+            for entry in er_helper.async_entries_for_device(ent_reg, self.config.proximity_entity):
+                tracked.append(entry.entity_id)
 
         # Windows
         add_if_entity(self.config.window_sensors)
@@ -415,12 +434,9 @@ class TempixCoordinator:
         self.debug_log(f"tracking {len(tracked)} entities")
 
         # Periodic heartbeat (every 1 min)
-        if self._heartbeat_timer:
-            self._heartbeat_timer()
-
-        self._heartbeat_timer = async_track_time_interval(
+        self._listeners.append(async_track_time_interval(
             self.hass, self._on_heartbeat, timedelta(minutes=1)
-        )
+        ))
 
     @callback
     def _on_state_change(self, event: Event) -> None:
@@ -522,26 +538,13 @@ class TempixCoordinator:
             unsub()
         self._listeners.clear()
 
-        # Cancel all active timers
         if self._trigger_timer:
             self._trigger_timer()
             self._trigger_timer = None
 
-        if self._heartbeat_timer:
-            self._heartbeat_timer()
-            self._heartbeat_timer = None
-
         if self._reeval_timer:
             self._reeval_timer()
             self._reeval_timer = None
-
-        if self._calendar_timer:
-            self._calendar_timer()
-            self._calendar_timer = None
-
-        if self._schedule_timer:
-            self._schedule_timer()
-            self._schedule_timer = None
 
         # Cancel all option-specific timers
         for cancel_timer in self._option_timers.values():
@@ -594,13 +597,16 @@ class TempixCoordinator:
         """Alias for async_update to support DataUpdateCoordinator-like interface."""
         await self.async_update()
 
-    def _validate_option(self, key: str, value: Any) -> bool:
-        """P1 Fix (F-FM-1): Runtime validation for config options."""
+    def _validate_option(self, key: str, value: Any, duration_mins: int | None = None) -> bool:
+        """Runtime validation for config options set via service calls."""
         if key == CONF_LEARNED_HEATING_RATE:
-            if not isinstance(value, (int, float)):
+            return isinstance(value, (int, float)) and 0 < value <= 10.0
+        if key in (CONF_PARTY_MODE_SWITCH, CONF_GUEST_MODE_SWITCH):
+            if not isinstance(value, bool):
                 return False
-            if value <= 0:
+            if duration_mins is not None and (not isinstance(duration_mins, (int, float)) or duration_mins <= 0):
                 return False
+            return True
         return True
 
     async def _do_update(self) -> bool:
@@ -686,6 +692,7 @@ class TempixCoordinator:
         # ── 4. Apply changes (Throttled Parallel - v1.5.1) ───────────────
         secs = self.config.action_delay.total_seconds()
 
+        # 1 concurrent write per 3 TRVs — limits FRITZ!DECT radio contention
         semaphore = asyncio.Semaphore(max(len(self.config.trvs) // 3 + 1, 1))
 
         async def _apply_with_semaphore(change: dict[str, Any]) -> None:
@@ -705,15 +712,17 @@ class TempixCoordinator:
                         _LOGGER.info("%s: %s recovered — circuit breaker reset", self.config.name, eid)
                     cb["failures"] = 0
                     cb["retry_after"] = None
+                    await self._cb_save()
                 except Exception as exc:
                     cb["failures"] += 1
                     # Backoff: 15 → 30 → 60 → 120min (cap at 120)
                     backoff_min = min(15 * (2 ** (cb["failures"] - 1)), 120)
                     cb["retry_after"] = datetime.now(UTC) + timedelta(minutes=backoff_min)
                     _LOGGER.warning(
-                        "%s: %s failed (%d/5+) — pausing for %dmin: %s",
+                        "%s: %s failed (%d) — pausing for %dmin: %s",
                         self.config.name, eid, cb["failures"], backoff_min, exc,
                     )
+                    await self._cb_save()
 
         if changes:
             tasks = [
@@ -839,6 +848,9 @@ class TempixCoordinator:
                     offset = self.config.away_offset
                     if offset != 0:
                         parts.append(f"🚶 -{offset}°C")
+                    cal_tags = self.engine.get_calendar_tags()
+                    if "comfort" in cal_tags:
+                        parts.append(f"📅 {cal_tags['comfort']}°C")
                     if self.engine.is_sunshine_offset_active():
                         w_offset = self.engine.get_sunshine_offset()
                         if w_offset > 0:
@@ -851,6 +863,9 @@ class TempixCoordinator:
                 parts = []
                 if self.engine.is_holiday_today():
                     parts.append("Holiday")
+                cal_tags = self.engine.get_calendar_tags()
+                if "comfort" in cal_tags:
+                    parts.append(f"📅 {cal_tags['comfort']}°C")
                 if self.engine.is_sunshine_offset_active():
                     w_offset = self.engine.get_sunshine_offset()
                     if w_offset > 0:
@@ -862,6 +877,9 @@ class TempixCoordinator:
                 parts = []
                 if self.engine.is_holiday_today():
                     parts.append("Holiday")
+                cal_tags = self.engine.get_calendar_tags()
+                if "eco" in cal_tags:
+                    parts.append(f"📅 {cal_tags['eco']}°C")
                 t = self.engine.check_outside_threshold()
                 if t is False and self.engine.is_season_mode():
                     parts.append("Outside > Threshold")

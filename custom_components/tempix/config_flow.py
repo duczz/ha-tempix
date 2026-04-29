@@ -454,7 +454,11 @@ class TempixCommonFlow:
                 
                 # ── Config Section: Proximity ──
                 vol.Optional("sec_proximity"): section(vol.Schema({
-                    self._entity_schema_key(CONF_PROXIMITY_ENTITY): _entity_sel("proximity"),
+                    self._entity_schema_key(CONF_PROXIMITY_ENTITY): selector.DeviceSelector(
+                        selector.DeviceSelectorConfig(
+                            integration="proximity",
+                        )
+                    ),
                     vol.Optional(CONF_PROXIMITY_DISTANCE, default=self._get_default(CONF_PROXIMITY_DISTANCE, DEFAULT_PROXIMITY_DISTANCE)): _number_sel(0, 5000, 10, unit="m"),
                     vol.Optional(CONF_PROXIMITY_DURATION, default=self._get_default(CONF_PROXIMITY_DURATION, DEFAULT_PROXIMITY_DURATION)): _duration_sel(),
                 }), {"collapsed": True}),

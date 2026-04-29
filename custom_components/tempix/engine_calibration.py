@@ -130,8 +130,6 @@ class CalibrationMixin:
                 step = state.attributes.get("target_temp_step", 0.5)
                 step = float(step) if step else 0.5
 
-            decimal_places = len(str(step).split(".")[-1]) if "." in str(step) else 0
-
             # Generic calibration
             if generic_calib and cur_valve_temp is not None:
                 offset = cur_valve_temp - ref_temp

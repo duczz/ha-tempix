@@ -104,6 +104,11 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
             name=entry.title,
             manufacturer="panhans / Martin Müller",
         )
+        self._restored_is_on: bool = False
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator._updates_enabled
 
     @property
     def is_on(self) -> bool:
@@ -116,10 +121,12 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore last known state on startup."""
         await super().async_added_to_hass()
-        self._restored_is_on: bool = False
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state not in ("unknown", "unavailable"):
             self._restored_is_on = last_state.state == "on"
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the entity on."""
@@ -142,9 +149,6 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
                     break
 
         setattr(self.coordinator.config, self.key, True)
-        self.coordinator.config._raw[self.key] = True
-        if sibling_key:
-            self.coordinator.config._raw[sibling_key] = False
         _LOGGER.debug("TPX Switch [%s]: turn_on key=%s, updating entry options", self.entry.title, self.key)
         self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()
@@ -157,7 +161,6 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         new_options = dict(self.entry.options)
         new_options[self.key] = False
         setattr(self.coordinator.config, self.key, False)
-        self.coordinator.config._raw[self.key] = False
         _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, updating entry options", self.entry.title, self.key)
         self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()

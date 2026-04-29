@@ -15,7 +15,6 @@ from homeassistant.helpers.storage import Store
 _LOGGER = logging.getLogger(__name__)
 
 _STORAGE_VERSION = 1
-_STORAGE_KEY = "tempix.scenes"
 
 
 class SceneManager:
@@ -27,13 +26,14 @@ class SceneManager:
         trvs: list[str],
         action_delay_secs: float,
         name: str,
+        entry_id: str,
     ) -> None:
         self._hass = hass
         self._trvs = trvs
         self._action_delay_secs = action_delay_secs
         self._name = name
         self._scenes: dict[str, dict] = {}
-        self._store = Store(hass, _STORAGE_VERSION, _STORAGE_KEY)
+        self._store = Store(hass, _STORAGE_VERSION, f"tempix.scenes.{entry_id}")
 
     async def async_load(self) -> None:
         """Load previously persisted scenes from storage."""

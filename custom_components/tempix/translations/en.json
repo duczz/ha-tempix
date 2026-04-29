@@ -3,6 +3,27 @@
         "sensor": {
             "status": {
                 "name": "Status"
+            },
+            "target_temperature": {
+                "name": "Target Temperature"
+            },
+            "external_temperature": {
+                "name": "External Room Temperature"
+            },
+            "outside_temperature": {
+                "name": "Outside Temperature"
+            },
+            "active_adjustment": {
+                "name": "Active Adjustment"
+            },
+            "active_scheduler": {
+                "name": "Active Schedule"
+            },
+            "active_schedule_period": {
+                "name": "Active Schedule Period"
+            },
+            "calibration_offset": {
+                "name": "Calibration Offset"
             }
         },
         "select": {

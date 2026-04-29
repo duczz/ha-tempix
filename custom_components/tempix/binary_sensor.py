@@ -111,6 +111,10 @@ class TempixBinarySensor(BinarySensorEntity):
         )
 
     @property
+    def available(self) -> bool:
+        return self._coordinator._updates_enabled
+
+    @property
     def is_on(self) -> bool | None:
         try:
             return self._val_func(self._engine)

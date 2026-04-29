@@ -42,8 +42,7 @@ class TempixClimate(ClimateEntity, RestoreEntity):
         self._coordinator = coordinator
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_climate"
-        self._attr_name = None  # content: sensor has name, device has name
-        self._attr_translation_key = "tempix"
+        self._attr_name = None
 
         # Device Info for UI grouping
         self._attr_device_info = {
@@ -61,7 +60,7 @@ class TempixClimate(ClimateEntity, RestoreEntity):
             if m in ("heat", "cool", "heat_cool", "auto"):
                 modes.add(HVACMode(m))
         self._attr_hvac_modes = list(modes)
-        self._attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+        self._attr_supported_features = ClimateEntityFeature(0)
 
         # Temperature Unit
         self._attr_temperature_unit = coordinator.hass.config.units.temperature_unit
@@ -93,6 +92,13 @@ class TempixClimate(ClimateEntity, RestoreEntity):
                     self._restored_current_temp = float(last_state.attributes["current_temperature"])
                 except (ValueError, TypeError):
                     pass
+        self.async_on_remove(
+            self._coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator._updates_enabled
 
     @property
     def hvac_mode(self) -> HVACMode:

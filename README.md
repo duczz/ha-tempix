@@ -24,7 +24,7 @@ Vielen Dank für deine Unterstützung! ❤️
 
 ## ✨ Features
 
-- **📅 Zeitplan- & Kalendersteuerung** – Schedule-Helper oder Google/iCloud-Kalender. Profi-Befehle in der Kalender-Beschreibung (`comfort: 21.5`, `time: 08:00 - 20:00`, `use_day: sunday`)
+- **📅 Zeitplan- & Kalendersteuerung** – Schedule-Helper oder Google/iCloud-Kalender. Profi-Befehle in der Kalender-Beschreibung (`comfort: 21.5`, `time: 08:00 - 20:00`, `use_day: sunday`). Aktive Kalender-Temperaturen sichtbar im Status-Sensor (`Comfort (📅 21°C)`). Zeilen mit `#` werden als Kommentare ignoriert.
 - **👥 Anwesenheitserkennung** – Personen, Geräte, Proximity (Geo-Fencing) und Präsenz-Sensoren. Automatische Absenkung bei Abwesenheit
 - **🪟 Fenster-Reaktion** – Multi-Sensor-Fenstererkennung mit Mehrheitsentscheid. Ein defekter Sensor blockiert nicht mehr die gesamte Erkennung
 - **🧭 TRV-Kalibrierung** – Generisch (alle TRVs), Native Offset (Tado, ZigBee) oder komplett aus
@@ -32,11 +32,14 @@ Vielen Dank für deine Unterstützung! ❤️
 - **🚀 Aggressiver Modus (Push-To-Target)** – Erzwingt schnelles Aufheizen nach Abwesenheit oder Lüften
 - **⏱️ Smart Preheating** – Lernt Aufheizrate (EMA). Startet automatisch zum richtigen Zeitpunkt
 - **☀️ Sunshine Offset** – Reduziert Comfort-Temp bei Sonnenschein (nur `sunny`)
-- **🎉 Feiertags-Erkennung** – Automatischer Zeitplan-Wechsel an Feiertagen via HA Holiday-Integration
+- **🎌 Feiertags-Erkennung** – Automatischer Zeitplan-Wechsel an Feiertagen via HA Holiday-Integration
 - **🎉 Party- & Gäste-Modus** – Mit optionalem Auto-Timer via Service
 - **✈️ Urlaubs-Modus** – Eigene Urlaubstemperatur, per Switch oder Kalender-Event aktivierbar
 - **🏖️ Saison-Modus** – Außentemperatur-Gate mit Hysterese verhindert stetes Hin- und Herschalten
 - **🔧 Ventilpositionierung** – Direkte Ventil-% Steuerung für unterstützte TRVs
+- **⚡ Force Comfort / Force Eco** – Ad-hoc-Override per Switch: erzwingt sofort Comfort- oder Eco-Temperatur unabhängig vom Zeitplan
+- **✋ Manual Override / Pause** – Hands-off-Modus: Tempix greift komplett zurück, du steuerst den TRV manuell — ohne die Integration deaktivieren zu müssen
+- **🔩 Liming-Schutz** – Automatische Zwangsspülung des Ventils (konfigurierbarer Wochentag & Uhrzeit) verhindert Kalkablagerungen bei langen Stillstandsphasen
 - **🔄 Dynamic Reload** – Temperatures, Offsets & Switches sofort live ohne Neustart
 - **📊 HA Diagnostik** – Vollständiger State-Snapshot als JSON-Download
 - **🛡️ Vollständig lokal** – Kein Cloud-Account, keine API-Keys, keine externen Abhängigkeiten

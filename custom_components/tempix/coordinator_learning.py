@@ -11,9 +11,12 @@ from datetime import datetime, UTC
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
 from custom_components.tempix.config_model import TempixConfig
 from custom_components.tempix.const import CONF_LEARNED_HEATING_RATE
+
+_STORAGE_VERSION = 1
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,6 +36,24 @@ class HeatingRateLearner:
         self._engine = engine
         self._entry_id = entry_id
         self._heating_session: dict[str, Any] | None = None
+        self._store: Store | None = None
+
+    def _get_store(self) -> Store:
+        if self._store is None:
+            self._store = Store(self._hass, _STORAGE_VERSION, f"tempix.learning.{self._entry_id}")
+        return self._store
+
+    async def async_load(self) -> None:
+        """Load persisted heating rate from storage and apply to config."""
+        try:
+            stored = await self._get_store().async_load()
+            if stored and CONF_LEARNED_HEATING_RATE in stored:
+                rate = stored[CONF_LEARNED_HEATING_RATE]
+                if self._is_valid_rate(rate):
+                    self._config.learned_heating_rate = float(rate)
+                    self._debug_log(f"Learning: Loaded rate {rate:.2f}°C/h from storage")
+        except Exception as exc:
+            _LOGGER.warning("%s: Failed to load learning storage: %s", self._config.name, exc)
 
     def _debug_log(self, msg: str) -> None:
         if self._config.debug_mode:
@@ -111,14 +132,13 @@ class HeatingRateLearner:
                             f"Updating learned base rate: {old_rate:.2f} -> {new_rate:.2f}°C/h"
                         )
 
-                        entry = self._hass.config_entries.async_get_entry(self._entry_id)
-                        if entry and self._is_valid_rate(new_rate):
-                            new_options = dict(entry.options)
-                            new_options[CONF_LEARNED_HEATING_RATE] = round(new_rate, 2)
-                            self._hass.config_entries.async_update_entry(
-                                entry, options=new_options
+                        if self._is_valid_rate(new_rate):
+                            self._config.learned_heating_rate = round(new_rate, 2)
+                            self._get_store().async_delay_save(
+                                lambda: {CONF_LEARNED_HEATING_RATE: self._config.learned_heating_rate},
+                                30.0,
                             )
-                        elif entry:
+                        else:
                             self._debug_log(f"Learning: Validation failed for rate {new_rate}")
                     else:
                         self._debug_log(

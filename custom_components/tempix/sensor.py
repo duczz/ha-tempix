@@ -75,7 +75,7 @@ async def async_setup_entry(
             "active_scheduler", "Active Scheduler",
             "mdi:calendar-clock", None,
             None,
-            lambda e: _get_scheduler_name(e)
+            lambda e: _get_scheduler_name(e, hass)
         ),
         TempixSensor(
             coordinator, engine, entry,
@@ -163,7 +163,8 @@ def _get_adjustment_name(engine) -> str:
     return str(adj.get("name", adj.get("time", "Unknown")))
 
 
-def _get_scheduler_name(engine) -> str:
+def _get_scheduler_name(engine, hass) -> str:
+    is_de = getattr(hass.config, "language", "en").startswith("de")
     in_cal_mode = engine.config.scheduling_mode == SCHEDULING_MODE_CALENDAR
 
     # Im Kalender-Modus: Kalender hat Priorität
@@ -175,7 +176,10 @@ def _get_scheduler_name(engine) -> str:
             start_dt = engine._parse_dt(cal_event.get("start_time") or cal_event.get("start"))
             end_dt = engine._parse_dt(cal_event.get("end_time") or cal_event.get("end"))
             is_active = bool(start_dt and end_dt and start_dt <= now < end_dt)
-            prefix = "Kalender" if is_active else "Kalender (nächster)"
+            if is_de:
+                prefix = "Kalender" if is_active else "Kalender (nächster)"
+            else:
+                prefix = "Calendar" if is_active else "Calendar (next)"
             summary = cal_event.get("summary")
             if summary and summary != "none":
                 return f"{prefix}: {summary}"
@@ -185,12 +189,12 @@ def _get_scheduler_name(engine) -> str:
     if sched_id:
         state = engine._get_state(sched_id)
         name = (state.attributes.get("friendly_name") if state else None) or sched_id
-        # Determine if scheduler is currently active (ON) or next
         is_active = bool(state and state.state == STATE_ON)
-        prefix = "Helper" if is_active else "Helper (nächster)"
+        next_label = "(nächster)" if is_de else "(next)"
+        prefix = "Helper" if is_active else f"Helper {next_label}"
         return f"{prefix}: {name}"
 
-    return "Kein Termin/Scheduler"
+    return "Kein Termin/Scheduler" if is_de else "No Schedule/Helper"
 
 
 def _get_trv_target_temperature(coordinator, trv_id: str) -> float | None:
@@ -228,6 +232,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
         self._attr_translation_key = "status"
 
         # Device Info for UI grouping
+        self._restored_native_value: str | None = None
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=self._entry.title,
@@ -235,6 +240,10 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
             model="Tempix",
             sw_version=VERSION,
         )
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator._updates_enabled
 
     @property
     def native_value(self) -> str:
@@ -282,7 +291,6 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore last known state on startup."""
         await super().async_added_to_hass()
-        self._restored_native_value: str | None = None
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state not in ("unknown", "unavailable"):
             self._restored_native_value = last_state.state
@@ -323,6 +331,7 @@ class TempixSensor(SensorEntity, RestoreEntity):
         if native_unit_of_measurement:
             self._attr_native_unit_of_measurement = native_unit_of_measurement
 
+        self._restored_native_value: str | float | None = None
         # Device Info for UI grouping
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
@@ -331,6 +340,10 @@ class TempixSensor(SensorEntity, RestoreEntity):
             model="Virtual Thermostat",
             sw_version=VERSION,
         )
+
+    @property
+    def available(self) -> bool:
+        return self._coordinator._updates_enabled
 
     @property
     def native_value(self) -> str | int | float | None:
@@ -345,7 +358,6 @@ class TempixSensor(SensorEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore last known state on startup."""
         await super().async_added_to_hass()
-        self._restored_native_value: str | float | None = None
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state not in ("unknown", "unavailable"):
             # Try to preserve numeric type for temperature sensors

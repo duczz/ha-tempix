@@ -189,6 +189,8 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         typed_config = TempixConfig.from_dict(new_config)
         data["engine"].config = typed_config
         data["coordinator"].config = typed_config
+        data["engine"]._last_outside_ok = None
+        data["engine"]._last_home_status = None
 
         # Force a coordinator update to apply changes immediately
         _LOGGER.debug("Dynamic update for %s: calling async_update", entry.title)

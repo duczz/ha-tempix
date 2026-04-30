@@ -434,7 +434,7 @@ class TempixCommonFlow:
     async def async_step_expert_presence(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
             return await self._save_and_next(
-                user_input, "expert_automation",
+                user_input, "expert_behavior",
                 frozenset({CONF_PROXIMITY_ENTITY, CONF_PRESENCE_SENSOR, CONF_SCHEDULER_PRESENCE}),
             )
 
@@ -475,25 +475,36 @@ class TempixCommonFlow:
 
     # ── Expert Step 4: Automation & Behavior ─────────────────────────────
 
-    async def async_step_expert_automation(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_expert_behavior(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         if user_input is not None:
-            return await self._save_and_next(user_input, "expert_advanced")
+            return await self._save_and_next(
+                user_input, "expert_advanced",
+                frozenset({CONF_SEASON_MODE_ENTITY}),
+            )
 
         return self.async_show_form(
-            step_id="expert_automation",
+            step_id="expert_behavior",
             data_schema=vol.Schema({
+                # ── Config Section: Season Mode ──
+                vol.Optional("sec_season_mode"): section(vol.Schema({
+                    self._entity_schema_key(CONF_SEASON_MODE_ENTITY): _entity_sel(["switch", "input_boolean"]),
+                    vol.Optional(CONF_IDLE_TEMPERATURE, default=self._get_default(CONF_IDLE_TEMPERATURE, DEFAULT_IDLE_TEMP)): _number_sel(0, 20, 0.5),
+                    vol.Optional(CONF_ROOM_TEMP_THRESHOLD_ENABLED, default=self._get_default(CONF_ROOM_TEMP_THRESHOLD_ENABLED, False)): _bool_sel(),
+                    vol.Optional(CONF_ROOM_TEMP_THRESHOLD, default=self._get_default(CONF_ROOM_TEMP_THRESHOLD, DEFAULT_ROOM_THRESHOLD)): _number_sel(0, 30, 0.5),
+                }), {"collapsed": True}),
+
                 # ── Config Section: Temperature Tweaks ──
                 vol.Optional("sec_temperature_tweaks"): section(vol.Schema({
                     vol.Optional(CONF_MIN_INSTEAD_OF_OFF, default=self._get_default(CONF_MIN_INSTEAD_OF_OFF, False)): _bool_sel(),
                     vol.Optional(CONF_RESET_TEMPERATURE, default=self._get_default(CONF_RESET_TEMPERATURE, False)): _bool_sel(),
                     vol.Optional(CONF_OFF_IF_ABOVE_ROOM_TEMP, default=self._get_default(CONF_OFF_IF_ABOVE_ROOM_TEMP, False)): _bool_sel(),
-                    vol.Optional(CONF_OFF_IF_NOBODY_HOME, default=self._get_default(CONF_OFF_IF_NOBODY_HOME, False)): _bool_sel(),
                     vol.Optional(CONF_UI_CHANGE, default=self._get_default(CONF_UI_CHANGE, False)): _bool_sel(),
                     vol.Optional(CONF_PHYSICAL_CHANGE, default=self._get_default(CONF_PHYSICAL_CHANGE, False)): _bool_sel(),
                 }), {"collapsed": True}),
                 
                 # ── Config Section: Away Mode ──
                 vol.Optional("sec_away_mode"): section(vol.Schema({
+                    vol.Optional(CONF_OFF_IF_NOBODY_HOME, default=self._get_default(CONF_OFF_IF_NOBODY_HOME, False)): _bool_sel(),
                     vol.Optional(CONF_AWAY_SCHEDULER_MODE, default=self._get_default(CONF_AWAY_SCHEDULER_MODE, False)): _bool_sel(),
                     vol.Optional(CONF_AWAY_OFFSET, default=self._get_default(CONF_AWAY_OFFSET, DEFAULT_AWAY_OFFSET)): _number_sel(0, 10, 0.5, mode="slider"),
                     vol.Optional(CONF_AWAY_PRESENCE_MODE, default=self._get_default(CONF_AWAY_PRESENCE_MODE, False)): _bool_sel(),
@@ -524,14 +535,6 @@ class TempixCommonFlow:
         return self.async_show_form(
             step_id="expert_advanced",
             data_schema=vol.Schema({
-                # ── Config Section: Season Mode ──
-                vol.Optional("sec_season_mode"): section(vol.Schema({
-                    self._entity_schema_key(CONF_SEASON_MODE_ENTITY): _entity_sel(["switch", "input_boolean"]),
-                    vol.Optional(CONF_IDLE_TEMPERATURE, default=self._get_default(CONF_IDLE_TEMPERATURE, DEFAULT_IDLE_TEMP)): _number_sel(0, 20, 0.5),
-                    vol.Optional(CONF_ROOM_TEMP_THRESHOLD_ENABLED, default=self._get_default(CONF_ROOM_TEMP_THRESHOLD_ENABLED, False)): _bool_sel(),
-                    vol.Optional(CONF_ROOM_TEMP_THRESHOLD, default=self._get_default(CONF_ROOM_TEMP_THRESHOLD, DEFAULT_ROOM_THRESHOLD)): _number_sel(0, 30, 0.5),
-                }), {"collapsed": True}),
-                
                 # ── Config Section: Valve Positioning ──
                 vol.Optional("sec_valve_positioning"): section(vol.Schema({
                     vol.Optional(CONF_VALVE_MODE, default=self._get_default(CONF_VALVE_MODE, False)): _bool_sel(),
@@ -549,7 +552,7 @@ class TempixCommonFlow:
                     vol.Optional(CONF_FROST_PROTECTION_DURATION, default=self._get_default(CONF_FROST_PROTECTION_DURATION, DEFAULT_FROST_DURATION)): _duration_sel(),
                     vol.Optional(CONF_LIMING_PROTECTION, default=self._get_default(CONF_LIMING_PROTECTION, False)): _bool_sel(),
                     vol.Optional(CONF_LIMING_DAY, default=self._get_default(CONF_LIMING_DAY, "mon")): _select_sel(["mon", "tue", "wed", "thu", "fri", "sat", "sun"], translation_key="liming_day", mode=selector.SelectSelectorMode.DROPDOWN),
-                    vol.Optional(CONF_LIMING_TIME, default=self._get_default(CONF_LIMING_TIME, "12:00:00")): _text_sel(),
+                    vol.Optional(CONF_LIMING_TIME, default=self._get_default(CONF_LIMING_TIME, "12:00:00")): _time_sel(),
                     vol.Optional(CONF_LIMING_DURATION, default=self._get_default(CONF_LIMING_DURATION, DEFAULT_LIMING_DURATION)): _number_sel(1, 60, 1, unit="min"),
                     vol.Optional(CONF_LIMING_IN_SEASON, default=self._get_default(CONF_LIMING_IN_SEASON, False)): _bool_sel(),
                 }), {"collapsed": True}),
@@ -563,8 +566,11 @@ class TempixCommonFlow:
         )
 
     async def _save_and_finish(self, user_input: dict[str, Any]) -> FlowResult:
-        """Override in concrete classes."""
-        raise NotImplementedError
+        clean = _clean_input(user_input)
+        store = self.data if hasattr(self, "data") else self._options
+        store.update(clean)
+        title = store.get(CONF_NAME, "")
+        return self.async_create_entry(title=title, data=store)
 
 
 # ─── ConfigFlow ──────────────────────────────────────────────────────────────
@@ -591,13 +597,6 @@ class ConfigFlow(TempixCommonFlow, config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-    async def _save_and_finish(self, user_input: dict[str, Any]) -> FlowResult:
-        clean = _clean_input(user_input)
-        self.data.update(clean)
-        if CONF_SEASON_MODE_ENTITY not in clean:
-            self.data[CONF_SEASON_MODE_ENTITY] = None
-        return self.async_create_entry(title=self.data[CONF_NAME], data=self.data)
-
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> OptionsFlowHandler:
@@ -619,9 +618,3 @@ class OptionsFlowHandler(TempixCommonFlow, config_entries.OptionsFlow):
             self._options.update(self._config_entry.options)
         return await self.async_step_expert_hardware()
 
-    async def _save_and_finish(self, user_input: dict[str, Any]) -> FlowResult:
-        clean = _clean_input(user_input)
-        self._options.update(clean)
-        if CONF_SEASON_MODE_ENTITY not in clean:
-            self._options[CONF_SEASON_MODE_ENTITY] = None
-        return self.async_create_entry(title="", data=self._options)

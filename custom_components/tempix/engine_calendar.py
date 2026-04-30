@@ -515,10 +515,12 @@ class CalendarMixin:
         state = self.hass.states.get(cal_id)
         if state and state.state == STATE_ON:
             return True
-        # Fallback: check fetched events (for calendars that support get_events)
-        now = datetime.now(UTC)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = now.replace(hour=23, minute=59, second=59, microsecond=0)
+        # Fallback: check fetched events — compare in local timezone to avoid
+        # all-day events (midnight local = 22:00 UTC) bleeding into the previous day
+        tz = dt_util.get_time_zone(self.hass.config.time_zone)
+        local_now = datetime.now(tz)
+        today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = local_now.replace(hour=23, minute=59, second=59, microsecond=0)
         for ev in self._calendar_events.get(cal_id, []):
             start = self._parse_dt(ev.get("start_time") or ev.get("start"))
             end = self._parse_dt(ev.get("end_time") or ev.get("end"))

@@ -201,10 +201,11 @@
                     }
                 }
             },
-            "expert_automation": {
+            "expert_behavior": {
                 "title": "5/6 · Behavior & Rules",
-                "description": "Fine‑tune how the system reacts to various conditions: temperature limits, away mode, and manual overrides.",
+                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away mode, and manual overrides.",
                 "data": {
+                    "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
                     "sec_away_mode": "Away Mode Behavior",
                     "sec_aggressive_mode": "Aggressive Mode",
@@ -212,13 +213,27 @@
                 },
                 "data_description": {},
                 "sections": {
+                    "sec_season_mode": {
+                        "name": "Season Mode",
+                        "data": {
+                            "season_mode_entity": "Season Helper",
+                            "idle_temperature": "Idle Temperature",
+                            "room_temp_threshold_enabled": "Enable room temp threshold",
+                            "room_temp_threshold": "Max Room Temperature"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
+                            "idle_temperature": "Fallback temperature when the automation is inactive.",
+                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
+                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                        }
+                    },
                     "sec_temperature_tweaks": {
                         "name": "Temperature Tweaks",
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
                             "reset_temperature": "Reset temperature on schedule change",
                             "off_if_above_room_temp": "OFF if target < room temp",
-                            "off_if_nobody_home": "OFF when nobody is home",
                             "ui_change": "Track dashboard temperature changes",
                             "physical_change": "Track physical dial changes"
                         },
@@ -226,7 +241,6 @@
                             "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
                             "reset_temperature": "Revert manual overrides when the next schedule block begins.",
                             "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
-                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
                             "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
                             "physical_change": "Detect and remember temperature changes made on the TRV dial."
                         }
@@ -234,12 +248,14 @@
                     "sec_away_mode": {
                         "name": "Away Mode Behavior",
                         "data": {
+                            "off_if_nobody_home": "OFF when nobody is home",
                             "away_scheduler_mode": "Away: Follow schedule",
                             "away_offset": "Away Offset Temperature",
                             "away_presence_mode": "Away: Use presence detection",
                             "away_ignore_people": "Away: ignore person tracking"
                         },
                         "data_description": {
+                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
                             "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
                             "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
                             "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
@@ -274,7 +290,7 @@
             },
             "expert_advanced": {
                 "title": "6/6 · Advanced & Protection",
-                "description": "Season switch, valve positioning, frost & liming protection, and system timing.",
+                "description": "Valve positioning, frost & liming protection, and system timing.",
                 "data": {
                     "sec_season_mode": "Season Mode",
                     "sec_valve_positioning": "Valve Positioning",
@@ -566,10 +582,11 @@
                     }
                 }
             },
-            "expert_automation": {
+            "expert_behavior": {
                 "title": "5/6 · Behavior & Rules",
-                "description": "Fine‑tune how the system reacts to various conditions: temperature limits, away mode, and manual overrides.",
+                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away mode, and manual overrides.",
                 "data": {
+                    "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
                     "sec_away_mode": "Away Mode Behavior",
                     "sec_aggressive_mode": "Aggressive Mode",
@@ -577,13 +594,27 @@
                 },
                 "data_description": {},
                 "sections": {
+                    "sec_season_mode": {
+                        "name": "Season Mode",
+                        "data": {
+                            "season_mode_entity": "Season Helper",
+                            "idle_temperature": "Idle Temperature",
+                            "room_temp_threshold_enabled": "Enable room temp threshold",
+                            "room_temp_threshold": "Max Room Temperature"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
+                            "idle_temperature": "Fallback temperature when the automation is inactive.",
+                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
+                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                        }
+                    },
                     "sec_temperature_tweaks": {
                         "name": "Temperature Tweaks",
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
                             "reset_temperature": "Reset temperature on schedule change",
                             "off_if_above_room_temp": "OFF if target < room temp",
-                            "off_if_nobody_home": "OFF when nobody is home",
                             "ui_change": "Track dashboard temperature changes",
                             "physical_change": "Track physical dial changes"
                         },
@@ -591,7 +622,6 @@
                             "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
                             "reset_temperature": "Revert manual overrides when the next schedule block begins.",
                             "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
-                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
                             "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
                             "physical_change": "Detect and remember temperature changes made on the TRV dial."
                         }
@@ -599,12 +629,14 @@
                     "sec_away_mode": {
                         "name": "Away Mode Behavior",
                         "data": {
+                            "off_if_nobody_home": "OFF when nobody is home",
                             "away_scheduler_mode": "Away: Follow schedule",
                             "away_offset": "Away Offset Temperature",
                             "away_presence_mode": "Away: Use presence detection",
                             "away_ignore_people": "Away: ignore person tracking"
                         },
                         "data_description": {
+                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
                             "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
                             "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
                             "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
@@ -639,7 +671,7 @@
             },
             "expert_advanced": {
                 "title": "6/6 · Advanced & Protection",
-                "description": "Season switch, valve positioning, frost & liming protection, and system timing.",
+                "description": "Valve positioning, frost & liming protection, and system timing.",
                 "data": {
                     "sec_season_mode": "Season Mode",
                     "sec_valve_positioning": "Valve Positioning",

@@ -201,10 +201,11 @@
                     }
                 }
             },
-            "expert_automation": {
+            "expert_behavior": {
                 "title": "5/6 · Verhalten & Regeln",
-                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
                 "data": {
+                    "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
                     "sec_aggressive_mode": "Aggressives Heizen",
@@ -212,13 +213,27 @@
                 },
                 "data_description": {},
                 "sections": {
+                    "sec_season_mode": {
+                        "name": "Saison Modus",
+                        "data": {
+                            "season_mode_entity": "Saison-Helfer",
+                            "idle_temperature": "Ruhetemperatur",
+                            "room_temp_threshold_enabled": "Raumtemperatur-Grenzwert aktivieren",
+                            "room_temp_threshold": "Max. Raumtemperatur"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. EIN = Automatik aktiv, AUS = Automatik inaktiv.",
+                            "idle_temperature": "Fallback-Temperatur wenn die Automatik inaktiv ist.",
+                            "room_temp_threshold_enabled": "Obere Raumtemperaturgrenze aktivieren.",
+                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                        }
+                    },
                     "sec_temperature_tweaks": {
                         "name": "Zusatz-Verhalten",
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
                             "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
                             "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
-                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
                             "ui_change": "Dashboard-Temperaturänderungen verfolgen",
                             "physical_change": "Physische Drehrad-Änderungen verfolgen"
                         },
@@ -226,7 +241,6 @@
                             "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
                             "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
                             "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
-                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
                             "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
                             "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
                         }
@@ -234,12 +248,14 @@
                     "sec_away_mode": {
                         "name": "Verhalten bei Abwesenheit",
                         "data": {
+                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
                             "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
                             "away_offset": "Abwesenheits-Temperaturabsenkung",
                             "away_presence_mode": "Abwesenheit: Präsenz nutzen",
                             "away_ignore_people": "Abwesend: Personen ignorieren"
                         },
                         "data_description": {
+                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
                             "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
                             "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
                             "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
@@ -274,7 +290,7 @@
             },
             "expert_advanced": {
                 "title": "6/6 · Erweitert & Schutz",
-                "description": "Saison-Schalter, Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
+                "description": "Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
                 "data": {
                     "sec_season_mode": "Saison Modus",
                     "sec_valve_positioning": "Ventilsteuerung (Prozent)",
@@ -566,10 +582,11 @@
                     }
                 }
             },
-            "expert_automation": {
+            "expert_behavior": {
                 "title": "5/6 · Verhalten & Regeln",
-                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
                 "data": {
+                    "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
                     "sec_aggressive_mode": "Aggressives Heizen",
@@ -577,13 +594,27 @@
                 },
                 "data_description": {},
                 "sections": {
+                    "sec_season_mode": {
+                        "name": "Saison Modus",
+                        "data": {
+                            "season_mode_entity": "Saison-Helfer",
+                            "idle_temperature": "Ruhetemperatur",
+                            "room_temp_threshold_enabled": "Raumtemperatur-Grenzwert aktivieren",
+                            "room_temp_threshold": "Max. Raumtemperatur"
+                        },
+                        "data_description": {
+                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. EIN = Automatik aktiv, AUS = Automatik inaktiv.",
+                            "idle_temperature": "Fallback-Temperatur wenn die Automatik inaktiv ist.",
+                            "room_temp_threshold_enabled": "Obere Raumtemperaturgrenze aktivieren.",
+                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                        }
+                    },
                     "sec_temperature_tweaks": {
                         "name": "Zusatz-Verhalten",
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
                             "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
                             "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
-                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
                             "ui_change": "Dashboard-Temperaturänderungen verfolgen",
                             "physical_change": "Physische Drehrad-Änderungen verfolgen"
                         },
@@ -591,7 +622,6 @@
                             "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
                             "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
                             "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
-                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
                             "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
                             "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
                         }
@@ -599,12 +629,14 @@
                     "sec_away_mode": {
                         "name": "Verhalten bei Abwesenheit",
                         "data": {
+                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
                             "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
                             "away_offset": "Abwesenheits-Temperaturabsenkung",
                             "away_presence_mode": "Abwesenheit: Präsenz nutzen",
                             "away_ignore_people": "Abwesend: Personen ignorieren"
                         },
                         "data_description": {
+                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
                             "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
                             "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
                             "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
@@ -639,7 +671,7 @@
             },
             "expert_advanced": {
                 "title": "6/6 · Erweitert & Schutz",
-                "description": "Saison-Schalter, Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
+                "description": "Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
                 "data": {
                     "sec_season_mode": "Saison Modus",
                     "sec_valve_positioning": "Ventilsteuerung (Prozent)",

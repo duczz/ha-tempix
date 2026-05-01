@@ -679,9 +679,9 @@ class TempixCoordinator:
 
         # M-E: Party ended while window still open → scene was saved with party temps,
         # discard it so closing the window won't restore stale party temperatures.
-        if self._prev_party and not is_party and window_open and self._scene_manager.has_scene("window"):
+        if self._prev_party and not is_party and self._scene_manager.has_scene("window"):
             self._scene_manager.clear("window")
-            self.debug_log("Party ended while window open – window scene discarded")
+            self.debug_log("Party ended – window scene discarded")
         self._prev_party = is_party
 
         if window_open and legacy_window and not self._scene_manager.has_scene("window"):

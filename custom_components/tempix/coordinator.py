@@ -807,7 +807,7 @@ class TempixCoordinator:
                     parts.append("Off")
                 t = self.engine.check_outside_threshold()
                 if t is False and self.engine.is_season_mode():
-                    parts.append("Outside < Threshold" if self.engine._factor == -1 else "Outside > Threshold")
+                    parts.append("Outside < Threshold" if self.engine.is_cooling else "Outside > Threshold")
                 return " | ".join(parts) if parts else "Inactive"
 
             case HeatingState.FROST_PROTECTION:
@@ -882,7 +882,7 @@ class TempixCoordinator:
                     parts.append(f"📅 {cal_tags['eco']}°C")
                 t = self.engine.check_outside_threshold()
                 if t is False and self.engine.is_season_mode():
-                    parts.append("Outside < Threshold" if self.engine._factor == -1 else "Outside > Threshold")
+                    parts.append("Outside < Threshold" if self.engine.is_cooling else "Outside > Threshold")
                 suffix = f" ({', '.join(parts)})" if parts else ""
                 return f"Eco{suffix}"
 

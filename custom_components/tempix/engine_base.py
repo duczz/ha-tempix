@@ -256,6 +256,16 @@ class EngineBaseMixin:
         """Cooling = −1, Heating = 1. Blueprint: factor variable."""
         return -1 if self.config.hvac_mode_eco == "cool" or self.config.hvac_mode_comfort == "cool" else 1
 
+    @property
+    def is_cooling(self) -> bool:
+        """True when the TRV operates in cooling mode."""
+        return self._factor == -1
+
+    @property
+    def is_heating(self) -> bool:
+        """True when the TRV operates in heating mode."""
+        return self._factor == 1
+
     # ── uncertainty ──────────────────────────────────────────────────────────
 
     def get_uncertainty_reasons(self) -> list[str]:

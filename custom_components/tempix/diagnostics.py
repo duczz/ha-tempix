@@ -44,7 +44,7 @@ def _redact_calendar_events(events: dict | None) -> dict | None:
     result = {}
     for i, cal_events in enumerate(events.values()):
         cleaned = [
-            {k: v for k, v in ev.items() if k not in ("location", "calendar_id")}
+            {k: v for k, v in ev.items() if k not in ("location", "calendar_id", "summary", "description", "message")}
             for ev in (cal_events or [])
         ]
         result[f"calendar_{i}"] = cleaned

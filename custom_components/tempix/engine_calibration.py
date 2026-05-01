@@ -167,14 +167,14 @@ class CalibrationMixin:
                 is_currently_off = cur_mode == "off" or (cur_temp is not None and cur_temp <= min_temp + 0.1 and min_not_off)
 
                 if not is_currently_off:
-                    if self._factor == 1 and (ref_temp > (target_temp + hysteresis) or math.isclose(ref_temp, target_temp + hysteresis)):
+                    if self.is_heating and (ref_temp > (target_temp + hysteresis) or math.isclose(ref_temp, target_temp + hysteresis)):
                         valve_mode = "off"
-                    elif self._factor == -1 and (ref_temp < (target_temp - hysteresis) or math.isclose(ref_temp, target_temp - hysteresis)):
+                    elif self.is_cooling and (ref_temp < (target_temp - hysteresis) or math.isclose(ref_temp, target_temp - hysteresis)):
                         valve_mode = "off"
                 else:
-                    if self._factor == 1 and (ref_temp > (target_temp - hysteresis) and not math.isclose(ref_temp, target_temp - hysteresis)):
+                    if self.is_heating and (ref_temp > (target_temp - hysteresis) and not math.isclose(ref_temp, target_temp - hysteresis)):
                         valve_mode = "off"
-                    elif self._factor == -1 and (ref_temp < (target_temp + hysteresis) and not math.isclose(ref_temp, target_temp + hysteresis)):
+                    elif self.is_cooling and (ref_temp < (target_temp + hysteresis) and not math.isclose(ref_temp, target_temp + hysteresis)):
                         valve_mode = "off"
 
             dont_turn_off = (

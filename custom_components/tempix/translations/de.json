@@ -233,7 +233,7 @@
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
                             "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
-                            "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
+                            "off_if_above_room_temp": "Aus wenn Zieltemperatur unter Raumtemperatur",
                             "ui_change": "Dashboard-Temperaturänderungen verfolgen",
                             "physical_change": "Physische Drehrad-Änderungen verfolgen"
                         },
@@ -614,7 +614,7 @@
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
                             "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
-                            "off_if_above_room_temp": "AUS wenn Ziel < Raumtemp",
+                            "off_if_above_room_temp": "Aus wenn Zieltemperatur unter Raumtemperatur",
                             "ui_change": "Dashboard-Temperaturänderungen verfolgen",
                             "physical_change": "Physische Drehrad-Änderungen verfolgen"
                         },

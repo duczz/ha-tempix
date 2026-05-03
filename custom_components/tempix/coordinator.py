@@ -407,6 +407,7 @@ class TempixCoordinator:
             self.config.scheduler_presence,
             self.config.season_mode_entity,
             self.config.outside_temp_sensor,
+            self.config.weather_entity,
         ):
             add_if_entity(val)
 

@@ -774,7 +774,20 @@
     "entity": {
         "sensor": {
             "status": {
-                "name": "Status"
+                "name": "Status",
+                "state": {
+                    "uncertain": "Waiting",
+                    "paused": "Paused",
+                    "idle": "Idle",
+                    "comfort": "Comfort",
+                    "eco": "Eco",
+                    "window_open": "Window open",
+                    "party_mode": "Party mode",
+                    "frost_protection": "Frost protection",
+                    "liming_protection": "Descaling",
+                    "away": "Away",
+                    "inactive": "Inactive"
+                }
             },
             "target_temperature": {
                 "name": "Target Temperature"

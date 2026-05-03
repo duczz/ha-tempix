@@ -233,7 +233,7 @@
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
                             "reset_temperature": "Reset temperature on schedule change",
-                            "off_if_above_room_temp": "OFF if target < room temp",
+                            "off_if_above_room_temp": "Off if target temperature below room temperature",
                             "ui_change": "Track dashboard temperature changes",
                             "physical_change": "Track physical dial changes"
                         },
@@ -614,7 +614,7 @@
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
                             "reset_temperature": "Reset temperature on schedule change",
-                            "off_if_above_room_temp": "OFF if target < room temp",
+                            "off_if_above_room_temp": "Off if target temperature below room temperature",
                             "ui_change": "Track dashboard temperature changes",
                             "physical_change": "Track physical dial changes"
                         },

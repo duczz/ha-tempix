@@ -424,6 +424,12 @@ class TempixCoordinator:
         # Windows
         add_if_entity(self.config.window_sensors)
 
+        # Adjustments: comfort/eco may reference entity_ids (e.g. input_number.foo)
+        for entry in self.config.adjustments or []:
+            if isinstance(entry, dict):
+                add_if_entity(entry.get("comfort"))
+                add_if_entity(entry.get("eco"))
+
         # Deduplicate and filter non-string values (e.g. booleans)
         tracked = list(set(eid for eid in tracked if isinstance(eid, str)))
 

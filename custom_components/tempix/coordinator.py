@@ -413,6 +413,7 @@ class TempixCoordinator:
 
         # Calendars (v1.4.0)
         add_if_entity(self.config.calendar)
+        add_if_entity(self.config.holiday_calendar)
 
         # Proximity: config holds a device_id — track all its entities
         if self.config.proximity_entity:

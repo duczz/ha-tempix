@@ -68,6 +68,8 @@ class TempixCoordinator:
         self._reeval_timer: Any = None
         self._update_lock = asyncio.Lock()
         self._updates_enabled = False
+        self._refresh_in_progress: bool = False
+        self._refresh_pending: bool = False
         self._ready_time: datetime | None = None
         self._uncertainty_start_time: datetime | None = None
 
@@ -602,8 +604,25 @@ class TempixCoordinator:
                 _LOGGER.error("%s: update error: %s", self.config.name, exc, exc_info=True)
 
     async def async_request_refresh(self) -> None:
-        """Alias for async_update to support DataUpdateCoordinator-like interface."""
-        await self.async_update()
+        """Coalesce concurrent refresh requests.
+
+        If a refresh is already in progress, set a pending flag and return immediately.
+        After the current refresh completes, run exactly one more pass to capture any
+        changes made during the in-flight update. Prevents N×TRV-call cascades when
+        multiple switches/services toggle simultaneously.
+        """
+        if self._refresh_in_progress:
+            self._refresh_pending = True
+            return
+        self._refresh_in_progress = True
+        try:
+            while True:
+                self._refresh_pending = False
+                await self.async_update()
+                if not self._refresh_pending:
+                    break
+        finally:
+            self._refresh_in_progress = False
 
     def _validate_option(self, key: str, value: Any, duration_mins: int | None = None) -> bool:
         """Runtime validation for config options set via service calls."""

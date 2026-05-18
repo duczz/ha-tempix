@@ -1,3 +1,9 @@
+<div align="center">
+
+# 🌡️ Tempix
+
+### Intelligente, ereignisbasierte Heizungs- & Klimaanlagensteuerung für Home Assistant.**
+
 [![HACS][hacs-badge]][hacs-url]
 [![Home Assistant][ha-badge]][ha-url]
 [![Version][version-badge]][release-url]
@@ -12,13 +18,15 @@
 [iot-badge]: https://img.shields.io/badge/IoT%20Class-local__push-22c55e.svg?style=for-the-badge
 [iot-url]: https://www.home-assistant.io/integrations
 
-# 🏠 Tempix
-
-> **Intelligente, ereignisbasierte Heizungs- & Klimaanlagensteuerung für Home Assistant.**
-> 
-> Verwandelt deine TRV-Thermostate in ein adaptives, selbstlernendes Heizsystem – rein lokal, ohne Cloud, ohne Abo.
-
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=duczz&repository=ha-tempix&category=integration)
+
+</div>
+
+---
+
+Verwandelt deine TRV-Thermostate und Klimaanlage in ein adaptives, selbstlernendes Heiz- & Kühlsystem – rein lokal, ohne Cloud, ohne Abo.
+
+---
 
 ## Support me ☕
 

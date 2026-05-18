@@ -2,7 +2,7 @@
 
 # 🌡️ Tempix
 
-### Intelligente, ereignisbasierte Heizungs- & Klimaanlagensteuerung für Home Assistant.**
+### Intelligente, ereignisbasierte Heizungs- & Klimaanlagensteuerung für Home Assistant.
 
 [![HACS][hacs-badge]][hacs-url]
 [![Home Assistant][ha-badge]][ha-url]

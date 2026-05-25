@@ -1,4 +1,6 @@
 {
+    "filename": "tempix.zip",
+    "homeassistant": "2024.6.0",
     "name": "Tempix",
-    "homeassistant": "2024.6.0"
+    "zip_release": true
 }

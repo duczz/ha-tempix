@@ -1,0 +1,27 @@
+name: Release Asset Creator
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Upload release asset
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create ZIP
+        run: |
+          cd custom_components
+          zip -r ../tempix.zip tempix/
+
+      - name: Upload zip to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" tempix.zip --clobber

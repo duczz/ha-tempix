@@ -281,7 +281,7 @@ class ScheduleMixin:
 
                     now = datetime.now(UTC)
                     if now + timedelta(minutes=preheat_minutes) >= next_start:
-                        label = "Pre-cooling" if self._factor == -1 else "Pre-heating"
+                        label = "Pre-cooling" if self.is_cooling else "Pre-heating"
                         self.debug_log(
                             f"Smart Preheating: {label} {preheat_minutes:.1f}min early for {next_start}. "
                             f"(Rate: {heat_up_rate}°C/h, Diff: {diff:.1f}°C)"

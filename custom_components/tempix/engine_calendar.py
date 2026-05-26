@@ -524,7 +524,7 @@ class CalendarMixin:
         for ev in self._calendar_events.get(cal_id, []):
             start = self._parse_dt(ev.get("start_time") or ev.get("start"))
             end = self._parse_dt(ev.get("end_time") or ev.get("end"))
-            if start and end and start <= today_end and end >= today_start:
+            if start and end and start <= today_end and end > today_start:
                 return True
         return False
 

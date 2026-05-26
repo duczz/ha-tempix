@@ -17,8 +17,8 @@ jobs:
 
       - name: Create ZIP
         run: |
-          cd custom_components
-          zip -r ../tempix.zip tempix/
+          cd custom_components/tempix
+          zip -r ../../tempix.zip .
 
       - name: Upload zip to release
         env:

@@ -31,6 +31,12 @@ class ProtectionMixin:
 
     # ── outside temperature threshold ────────────────────────────────────────
 
+    def _evaluate_bootstrap(self, t: float, threshold: float, hysteresis: float, fallback: bool) -> bool:
+        """Deterministischer Bootstrap: Berechne den Zustand ohne Bias durch Hysterese."""
+        # Da wir nicht wissen, ob wir von oben oder unten kommen, 
+        # prüfen wir schlichtweg gegen den Threshold.
+        return (t - threshold) * self._factor < 0
+
     def check_outside_threshold(self) -> bool | None:
         """Return ``True`` = heating ON, ``False`` = OFF, ``None`` = not configured.
 
@@ -53,17 +59,36 @@ class ProtectionMixin:
             return fallback
 
         t = float(temp)
+        outside_ok = self._last_outside_ok
+
         if self._last_outside_ok is None:
             # First evaluation — no previous state, use plain threshold
-            outside_ok = (t - threshold) * self._factor < 0
+            outside_ok = self._evaluate_bootstrap(t, threshold, hysteresis, fallback)
         elif self._last_outside_ok:
-            # Currently heating — only turn OFF if clearly above threshold
-            outside_ok = (t - (threshold + hysteresis)) * self._factor < 0
+            # Currently active (heating or cooling)
+            if self.is_heating:
+                # Heating: only turn OFF if clearly above threshold
+                if t >= threshold + hysteresis:
+                    outside_ok = False
+            elif self.is_cooling:
+                # Cooling: only turn OFF if clearly below threshold
+                if t <= threshold - hysteresis:
+                    outside_ok = False
         else:
-            # Currently off — only turn ON if clearly below threshold
-            outside_ok = (t - (threshold - hysteresis)) * self._factor < 0
+            # Currently inactive (heating or cooling)
+            if self.is_heating:
+                # Heating: only turn ON if clearly below threshold
+                if t < threshold - hysteresis:
+                    outside_ok = True
+            elif self.is_cooling:
+                # Cooling: only turn ON if clearly above threshold
+                if t > threshold + hysteresis:
+                    outside_ok = True
 
-        self._last_outside_ok = outside_ok
+        if self._last_outside_ok != outside_ok:
+            self._last_outside_ok = outside_ok
+            if self._on_dirty:
+                self._on_dirty()
 
         use_room = self.config.room_temp_threshold_enabled
         if use_room:

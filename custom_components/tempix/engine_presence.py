@@ -19,6 +19,7 @@ from homeassistant.helpers import entity_registry as er_helper
 from custom_components.tempix.const import (
     SCHEDULING_MODE_CALENDAR,
     INVALID_STATES,
+    AWAY_BEHAVIOR_IGNORE,
 )
 
 
@@ -314,32 +315,34 @@ class PresenceMixin:
     # ── away mode ────────────────────────────────────────────────────────────
 
     def is_away(self) -> bool:
-        """Away detection with 4 condition branches."""
+        """Away detection. Returns True if a schedule is active but nobody is home/in the room."""
         scheduling_mode = self.config.scheduling_mode
-        away_sched = self.config.away_scheduler_mode
         away_pres = self.config.away_presence_mode
         ignore_ppl = self.config.away_ignore_people
 
-        if (self.is_person_defined() or self.is_proximity_defined()) and not self.is_anybody_home_or_proximity():
-            if away_sched:
-                if scheduling_mode == SCHEDULING_MODE_CALENDAR:
-                    if self.is_calendar_comfort_active():
-                        return True
-                else:
-                    if self.is_scheduler_active() or self.is_calendar_comfort_active():
-                        return True
+        if self.config.away_behavior == AWAY_BEHAVIOR_IGNORE:
+            return False
 
-            if away_pres:
-                if self.is_presence_scheduler_active() and not self.is_presence_active():
-                    return True
+        # 1. We only consider "Away mode" during active schedules
+        is_scheduled = False
+        if scheduling_mode == SCHEDULING_MODE_CALENDAR:
+            is_scheduled = self.is_calendar_comfort_active()
+        else:
+            is_scheduled = self.is_scheduler_active() or self.is_calendar_comfort_active()
 
-        if ignore_ppl and away_pres:
-            return (self.is_presence_scheduler_active()
-                    and not self.is_presence_active())
+        if not is_scheduled:
+            return False
 
-        if (away_pres and (self.is_person_defined() or self.is_proximity_defined())
-                and self.is_anybody_home_or_proximity()
-                and not ignore_ppl):
-            return self.is_presence_scheduler_active() and not self.is_presence_active()
+        # 2. Check Room Presence (if enabled for Away Mode)
+        if away_pres:
+            if self.is_presence_scheduler_active() and not self.is_presence_active():
+                return True
+            if ignore_ppl:
+                return False
+
+        # 3. Check House Presence (Persons / Proximity)
+        if self.is_person_defined() or self.is_proximity_defined():
+            if self.is_anybody_home_or_proximity() is False:
+                return True
 
         return False

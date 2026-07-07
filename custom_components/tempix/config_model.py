@@ -123,6 +123,7 @@ class TempixConfig:
     sync_adjustments: bool = False
     force_comfort_switch: bool = False
     force_eco_switch: bool = False
+    enable_temporary_manual_override: bool = True
     party_mode_switch: bool = False
     party_temperature: float | None = None
     vacation_mode_switch: bool = False
@@ -130,18 +131,14 @@ class TempixConfig:
 
     # ── Temperature Tweaks ───────────────────────────────────────────────
     min_instead_of_off: bool = False
-    reset_temperature: bool = False
     off_if_above_room_temp: bool = False
-    off_if_nobody_home: bool = False
-    ui_change: bool = False
-    physical_change: bool = False
     hysteresis: float = 0.3
 
     # ── Away ─────────────────────────────────────────────────────────────
     away_offset: float = 0.0
-    away_scheduler_mode: bool = False
     away_presence_mode: bool = False
     away_ignore_people: bool = False
+    away_behavior: str = "offset"
 
     # ── Window ───────────────────────────────────────────────────────────
     window_sensors: list[str] = field(default_factory=list)
@@ -186,7 +183,7 @@ class TempixConfig:
     # ── Season / Automation ──────────────────────────────────────────────
     season_mode_entity: str | None = None
     automation_active: bool = True
-    manual_override_pause: bool = False
+    manual_override: bool = False
     idle_temperature: float = 0.0
 
     # ── Valve Positioning ────────────────────────────────────────────────
@@ -210,12 +207,12 @@ class TempixConfig:
     )
 
     # ── Optimum Start / Evolution ────────────────────────────────────────
-    optimum_start: bool = False
+    smart_preconditioning: bool = False
     sunshine_offset: bool = False
     sunshine_offset_value: float = 1.0
-    learned_heating_rate: float = 1.0
-    heating_rate_lookback: int = 5
-    max_optimum_start: timedelta = field(
+    learned_climate_rate: float = 1.0
+    climate_rate_lookback: int = 5
+    max_smart_preconditioning: timedelta = field(
         default_factory=lambda: timedelta(hours=2)
     )
 
@@ -291,6 +288,7 @@ class TempixConfig:
             sync_adjustments=bool(g("sync_adjustments", False)),
             force_comfort_switch=bool(g("force_comfort_switch", False)),
             force_eco_switch=bool(g("force_eco_switch", False)),
+            enable_temporary_manual_override=bool(g("enable_temporary_manual_override", True)),
             party_mode_switch=bool(g("party_mode_switch", False)),
             party_temperature=(
                 float(party_temp) if party_temp is not None else None
@@ -301,17 +299,13 @@ class TempixConfig:
             ),
             # Temperature Tweaks
             min_instead_of_off=bool(g("min_instead_of_off", False)),
-            reset_temperature=bool(g("reset_temperature", False)),
             off_if_above_room_temp=bool(g("off_if_above_room_temp", False)),
-            off_if_nobody_home=bool(g("off_if_nobody_home", False)),
-            ui_change=bool(g("ui_change", False)),
-            physical_change=bool(g("physical_change", False)),
             hysteresis=float(g("hysteresis", 0.3)),
             # Away
             away_offset=float(g("away_offset", 0.0)),
-            away_scheduler_mode=bool(g("away_scheduler_mode", False)),
             away_presence_mode=bool(g("away_presence_mode", False)),
             away_ignore_people=bool(g("away_ignore_people", False)),
+            away_behavior=g("away_behavior", "offset"),
             # Window
             window_sensors=_parse_entity_list(g("window_sensors")),
             window_reaction_open=parse_duration(
@@ -350,7 +344,7 @@ class TempixConfig:
             # Season / Automation
             season_mode_entity=g("season_mode_entity"),
             automation_active=bool(g("automation_active", True)),
-            manual_override_pause=bool(g("manual_override_pause", False)),
+            manual_override=bool(g("manual_override", False)),
             idle_temperature=float(g("idle_temperature", 0.0)),
             # Valve
             valve_mode=g("valve_mode", "off"),
@@ -371,14 +365,14 @@ class TempixConfig:
                 g("sensor_retention", {"hours": 0, "minutes": 0, "seconds": 30})
             ),
             # Optimum Start
-            optimum_start=bool(g("optimum_start", False)),
+            smart_preconditioning=bool(g("smart_preconditioning", False)),
             weather_entity=g("weather_entity"),
             sunshine_offset=bool(g("sunshine_offset", False)),
             sunshine_offset_value=float(g("sunshine_offset_value", 1.0)),
-            learned_heating_rate=float(g("learned_heating_rate", 1.0)),
-            heating_rate_lookback=int(g("heating_rate_lookback", 5)),
-            max_optimum_start=parse_duration(
-                g("max_optimum_start", {"hours": 2, "minutes": 0, "seconds": 0})
+            learned_climate_rate=float(g("learned_climate_rate", 1.0)),
+            climate_rate_lookback=int(g("climate_rate_lookback", 5)),
+            max_smart_preconditioning=parse_duration(
+                g("max_smart_preconditioning", {"hours": 2, "minutes": 0, "seconds": 0})
             ),
             # Holiday
             holiday_calendar=g("holiday_calendar"),

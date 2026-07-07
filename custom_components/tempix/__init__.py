@@ -14,6 +14,7 @@ from custom_components.tempix.const import (
     AGGRESSIVE_MODE_OFF, AGGRESSIVE_MODE_TARGET, AGGRESSIVE_MODE_CALIBRATION,
     CONF_CALIBRATION_MODE, CALIBRATION_MODE_OFF, CALIBRATION_MODE_NATIVE, CALIBRATION_MODE_GENERIC,
     CONF_CALIBRATION_ENABLED, CONF_CALIBRATION_GENERIC,
+    CONF_ENABLE_TEMPORARY_MANUAL_OVERRIDE,
     CONF_TRVS, CONF_TEMPERATURE_SENSOR, CONF_OUTSIDE_TEMP_SENSOR,
     CONF_WINDOW_SENSORS, CONF_PERSONS, CONF_SCHEDULERS,
     CONF_SCHEDULER_SELECTOR, CONF_PRESENCE_SENSOR,
@@ -63,13 +64,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         new_options.pop(CONF_CALIBRATION_ENABLED, None)
         new_options.pop(CONF_CALIBRATION_GENERIC, None)
         changed = True
-            
+
+    # Temporary manual override migration – existing users get opt-in default (False)
+    if CONF_ENABLE_TEMPORARY_MANUAL_OVERRIDE not in merged_config:
+        new_options[CONF_ENABLE_TEMPORARY_MANUAL_OVERRIDE] = False
+        changed = True
+
     if changed:
-        _LOGGER.info("Migrating %s config for new switch keys/defaults. Triggering reload.", entry.entry_id)
+        _LOGGER.info("Migrating %s config for new switch keys/defaults.", entry.entry_id)
         hass.config_entries.async_update_entry(entry, options=new_options)
-        # Return True early. HA will reload the entry because options changed, 
-        # and we don't want to initialize the full motor with stale data.
-        return True
+        # NO early return here. async_update_entry only notifies REGISTERED
+        # update listeners (verified against HA 2026.6: _async_save_and_notify)
+        # — ours is registered further down, so nothing would reload the entry
+        # and it would sit LOADED but without platforms until the next restart.
+        # entry.options is updated synchronously, so setup continues below with
+        # the migrated values.
 
     config = TempixConfig.from_dict({**entry.data, **entry.options})
 
@@ -137,7 +146,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
 
     return unload_ok
 
@@ -189,7 +198,10 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         _LOGGER.info("Dynamic update for %s. Keys: %s", entry.title, changed_keys)
         typed_config = TempixConfig.from_dict(new_config)
         data["engine"].config = typed_config
-        data["coordinator"].config = typed_config
+        # apply_config swaps the config on the coordinator AND its helper
+        # objects (CalibrationApplier, ValvePositioner, ClimateRateLearner) —
+        # a plain attribute assignment would leave them on the stale instance.
+        data["coordinator"].apply_config(typed_config)
         data["engine"]._last_outside_ok = None
         data["engine"]._last_home_status = None
 

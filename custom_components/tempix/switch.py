@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, UTC
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -17,11 +18,13 @@ from custom_components.tempix.const import (
     CONF_VACATION_MODE_SWITCH,
     CONF_GUEST_MODE_SWITCH,
     CONF_AUTOMATION_ACTIVE,
-    CONF_MANUAL_OVERRIDE_PAUSE,
-    CONF_OPTIMUM_START,
+    CONF_MANUAL_OVERRIDE,
+    CONF_SMART_PRECONDITIONING,
     CONF_SUNSHINE_OFFSET,
     CONF_FORCE_COMFORT_SWITCH,
     CONF_FORCE_ECO_SWITCH,
+    CONF_LIMING_PROTECTION,
+    CONF_FROST_PROTECTION_ENABLED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,41 +42,49 @@ async def async_setup_entry(
     async_add_entities([
         TempixSwitch(
             coordinator, entry,
-            CONF_GUEST_MODE_SWITCH, "Guest Mode", "mdi:account-star"
+            CONF_GUEST_MODE_SWITCH, "mdi:account-star"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_PARTY_MODE_SWITCH, "Party Mode", "mdi:party-popper"
+            CONF_PARTY_MODE_SWITCH, "mdi:party-popper"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_VACATION_MODE_SWITCH, "Vacation Mode", "mdi:airplane"
+            CONF_VACATION_MODE_SWITCH, "mdi:airplane"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_AUTOMATION_ACTIVE, "Automation Active", "mdi:robot"
+            CONF_LIMING_PROTECTION, "mdi:valve"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_MANUAL_OVERRIDE_PAUSE, "Manual Override", "mdi:hand-back-right"
-        ),
-
-        TempixSwitch(
-            coordinator, entry,
-            CONF_OPTIMUM_START, "Smart Preheating", "mdi:clock-fast"
+            CONF_FROST_PROTECTION_ENABLED, "mdi:snowflake"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_SUNSHINE_OFFSET, "Sunshine Offset", "mdi:weather-sunny-alert"
+            CONF_AUTOMATION_ACTIVE, "mdi:robot-outline"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_FORCE_ECO_SWITCH, "Force Eco Temperature", "mdi:leaf"
+            CONF_MANUAL_OVERRIDE, "mdi:hand-back-right-outline"
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_FORCE_COMFORT_SWITCH, "Force Comfort Temperature", "mdi:fire-alert"
+            CONF_SMART_PRECONDITIONING, "mdi:clock-fast"
         ),
+        TempixSwitch(
+            coordinator, entry,
+            CONF_SUNSHINE_OFFSET, "mdi:weather-sunny-alert"
+        ),
+        TempixSwitch(
+            coordinator, entry,
+            CONF_FORCE_ECO_SWITCH, "mdi:leaf"
+        ),
+        TempixSwitch(
+            coordinator, entry,
+            CONF_FORCE_COMFORT_SWITCH, "mdi:fire"
+        ),
+        TempixOverrideSwitch(coordinator, entry),
     ])
 
 
@@ -88,21 +99,19 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         coordinator,
         entry: ConfigEntry,
         key: str,
-        name: str,
         icon: str,
     ) -> None:
         """Initialize the switch."""
         self.coordinator = coordinator
         self.entry = entry
         self.key = key
-        self._attr_name = name
         self._attr_translation_key = key
         self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
         )
         self._restored_is_on: bool = False
 
@@ -167,3 +176,67 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, calling async_request_refresh", self.entry.title, self.key)
         await self.coordinator.async_request_refresh()
         _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, refresh complete", self.entry.title, self.key)
+
+class TempixOverrideSwitch(SwitchEntity):
+    """Switch reflecting the state of the active TemporaryManualOverride."""
+
+    _attr_has_entity_name = True
+    _attr_should_poll = False
+    _attr_translation_key = "temporary_manual_override"
+    _attr_icon = "mdi:hand-back-right"
+
+    def __init__(self, coordinator, entry: ConfigEntry) -> None:
+        self.coordinator = coordinator
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_temporary_manual_override"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=entry.title,
+            manufacturer="Martin Müller",
+        )
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator._updates_enabled
+
+    @property
+    def is_on(self) -> bool:
+        override = self.coordinator._temporary_manual_override
+        return override is not None and override.active
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.async_add_listener(self.async_write_ha_state)
+        )
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Lock in the current computed target temperature as an override.
+        
+        No-op if the coordinator state is uncertain (temp or hvac is None),
+        because we'd create a ghost override that shows as ON but does nothing.
+        """
+        temp = self.coordinator.current_temperature
+        hvac = self.coordinator.current_hvac
+        if temp is None or hvac is None:
+            _LOGGER.warning(
+                "TPX OverrideSwitch [%s]: Cannot activate override – coordinator state is uncertain "
+                "(temp=%s, hvac=%s). Is a sensor unavailable?",
+                self.entry.title, temp, hvac,
+            )
+            return
+        self.coordinator.activate_temporary_manual_override(
+            new_temp=temp,
+            new_hvac=hvac,
+            source="ui",
+            now=datetime.now(UTC)
+        )
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Clear the temporary override."""
+        self.coordinator.clear_temporary_manual_override()
+        # Write state immediately — the listener roundtrip via async_update can
+        # end in an uncertainty early-return before listeners are notified,
+        # which would leave the switch visually ON.
+        self.async_write_ha_state()

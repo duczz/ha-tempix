@@ -3,7 +3,7 @@
         "step": {
             "user": {
                 "title": "Welcome",
-                "description": "Give this heating control a unique name.",
+                "description": "Give this climate control a unique name.",
                 "data": {
                     "name": "Control Name"
                 },
@@ -35,7 +35,7 @@
                             "window_legacy_restore": "Restore previous temperature"
                         },
                         "data_description": {
-                            "window_sensors": "Heating pauses automatically when a sensor reports 'open'.",
+                            "window_sensors": "Climate control pauses automatically when a sensor reports 'open'.",
                             "window_reaction_open": "Wait this long before lowering the temperature.",
                             "window_reaction_close": "Wait this long before restoring the temperature.",
                             "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
@@ -120,7 +120,7 @@
             },
             "expert_climate_calendar": {
                 "title": "3/6 · Calendar Settings",
-                "description": "Fine‑tune how calendar events control this room's heating.",
+                "description": "Fine‑tune how calendar events control this room's climate.",
                 "data": {
                     "calendar": "Calendar Entities",
                     "calendar_event": "Event Keywords",
@@ -132,7 +132,7 @@
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
-                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
+                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger the climate control.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
                     "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
@@ -162,11 +162,11 @@
                             "persons_force_comfort_end": "Override End Time"
                         },
                         "data_description": {
-                            "persons": "Persons whose home/away status affects heating.",
-                            "guest_mode": "When any of these is ON, heating behaves as if someone is home.",
+                            "persons": "Persons whose home/away status affects climate control.",
+                            "guest_mode": "When any of these is ON, the system behaves as if someone is home.",
                             "people_entering_duration": "Grace period before 'arriving home' triggers Comfort.",
                             "people_leaving_duration": "Grace period before 'leaving home' triggers Eco.",
-                            "persons_force_comfort": "If ON, heating will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
+                            "persons_force_comfort": "If ON, climate control will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
                             "persons_force_comfort_start": "Start time for the presence override.",
                             "persons_force_comfort_end": "End time for the presence override."
                         }
@@ -180,7 +180,7 @@
                         },
                         "data_description": {
                             "proximity_entity": "HA Proximity integration entity for geo‑fencing.",
-                            "proximity_distance": "Start preheating when person is within this radius (meters).",
+                            "proximity_distance": "Start pre-conditioning when person is within this radius (meters).",
                             "proximity_duration": "Person must be within radius for this long before triggering."
                         }
                     },
@@ -203,7 +203,7 @@
             },
             "expert_behavior": {
                 "title": "5/6 · Behavior & Rules",
-                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away mode, and manual overrides.",
+                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away offset, and manual overrides.",
                 "data": {
                     "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
@@ -225,39 +225,33 @@
                             "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
                             "idle_temperature": "Fallback temperature when the automation is inactive.",
                             "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
                         }
                     },
                     "sec_temperature_tweaks": {
                         "name": "Temperature Tweaks",
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
-                            "reset_temperature": "Reset temperature on schedule change",
-                            "off_if_above_room_temp": "Off if target temperature below room temperature",
-                            "ui_change": "Track dashboard temperature changes",
-                            "physical_change": "Track physical dial changes"
+                            "off_if_above_room_temp": "Off if Target Temperature Reached",
+                            "enable_temporary_manual_override": "Enable Temporary Manual Override"
                         },
                         "data_description": {
                             "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
-                            "reset_temperature": "Revert manual overrides when the next schedule block begins.",
-                            "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
-                            "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
-                            "physical_change": "Detect and remember temperature changes made on the TRV dial."
+                            "off_if_above_room_temp": "Turn off devices when the target temperature in the room has already been reached.",
+                            "enable_temporary_manual_override": "When a user manually changes the TRV or UI, override the schedule until the next schedule block starts."
                         }
                     },
                     "sec_away_mode": {
                         "name": "Away Mode Behavior",
                         "data": {
-                            "off_if_nobody_home": "OFF when nobody is home",
-                            "away_scheduler_mode": "Away: Follow schedule",
+                            "away_behavior": "Away Behavior",
                             "away_offset": "Away Offset Temperature",
                             "away_presence_mode": "Away: Use presence detection",
                             "away_ignore_people": "Away: ignore person tracking"
                         },
                         "data_description": {
-                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
-                            "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
-                            "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
+                            "away_behavior": "Select what the system should do when the house is empty.",
+                            "away_offset": "Temperature adjustment applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
                             "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
                             "away_ignore_people": "Do not use person tracking for away mode decisions."
                         }
@@ -270,9 +264,9 @@
                             "aggressive_offset": "Additional Offset (°C)"
                         },
                         "data_description": {
-                            "aggressive_mode_selector": "Boost heating when temperature is far from target.",
-                            "aggressive_range": "Temperature difference that activates aggressive heating.",
-                            "aggressive_offset": "Additional temperature offset during aggressive heating."
+                            "aggressive_mode_selector": "Boost performance when temperature is far from target.",
+                            "aggressive_range": "Temperature difference that activates aggressive mode.",
+                            "aggressive_offset": "Additional temperature offset during aggressive mode."
                         }
                     },
                     "sec_adjustments": {
@@ -311,7 +305,7 @@
                             "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
                             "idle_temperature": "Fallback temperature when the automation is inactive.",
                             "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
                         }
                     },
                     "sec_valve_positioning": {
@@ -416,7 +410,7 @@
                             "window_legacy_restore": "Restore previous temperature"
                         },
                         "data_description": {
-                            "window_sensors": "Heating pauses automatically when a sensor reports 'open'.",
+                            "window_sensors": "Climate control pauses automatically when a sensor reports 'open'.",
                             "window_reaction_open": "Wait this long before lowering the temperature.",
                             "window_reaction_close": "Wait this long before restoring the temperature.",
                             "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
@@ -501,7 +495,7 @@
             },
             "expert_climate_calendar": {
                 "title": "3/6 · Calendar Settings",
-                "description": "Fine‑tune how calendar events control this room's heating.",
+                "description": "Fine‑tune how calendar events control this room's climate.",
                 "data": {
                     "calendar": "Calendar Entities",
                     "calendar_event": "Event Keywords",
@@ -513,7 +507,7 @@
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
-                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger heating.",
+                    "calendar_event": "Comma‑separated keywords. Only events matching these will trigger the climate control.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
                     "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
@@ -543,11 +537,11 @@
                             "persons_force_comfort_end": "Override End Time"
                         },
                         "data_description": {
-                            "persons": "Persons whose home/away status affects heating.",
-                            "guest_mode": "When any of these is ON, heating behaves as if someone is home.",
+                            "persons": "Persons whose home/away status affects climate control.",
+                            "guest_mode": "When any of these is ON, the system behaves as if someone is home.",
                             "people_entering_duration": "Grace period before 'arriving home' triggers Comfort.",
                             "people_leaving_duration": "Grace period before 'leaving home' triggers Eco.",
-                            "persons_force_comfort": "If ON, heating will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
+                            "persons_force_comfort": "If ON, climate control will stay on Comfort as long as someone is home, even if the schedule is in an Eco period.",
                             "persons_force_comfort_start": "Start time for the presence override.",
                             "persons_force_comfort_end": "End time for the presence override."
                         }
@@ -561,7 +555,7 @@
                         },
                         "data_description": {
                             "proximity_entity": "HA Proximity integration entity for geo‑fencing.",
-                            "proximity_distance": "Start preheating when person is within this radius (meters).",
+                            "proximity_distance": "Start pre-conditioning when person is within this radius (meters).",
                             "proximity_duration": "Person must be within radius for this long before triggering."
                         }
                     },
@@ -584,7 +578,7 @@
             },
             "expert_behavior": {
                 "title": "5/6 · Behavior & Rules",
-                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away mode, and manual overrides.",
+                "description": "Fine‑tune how the system reacts to various conditions: season mode, temperature limits, away offset, and manual overrides.",
                 "data": {
                     "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
@@ -606,39 +600,33 @@
                             "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
                             "idle_temperature": "Fallback temperature when the automation is inactive.",
                             "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
                         }
                     },
                     "sec_temperature_tweaks": {
                         "name": "Temperature Tweaks",
                         "data": {
                             "min_instead_of_off": "Use minimum temp instead of OFF",
-                            "reset_temperature": "Reset temperature on schedule change",
-                            "off_if_above_room_temp": "Off if target temperature below room temperature",
-                            "ui_change": "Track dashboard temperature changes",
-                            "physical_change": "Track physical dial changes"
+                            "off_if_above_room_temp": "Off if Target Temperature Reached",
+                            "enable_temporary_manual_override": "Enable Temporary Manual Override"
                         },
                         "data_description": {
                             "min_instead_of_off": "Never fully turn off the TRV; use its minimum setting instead.",
-                            "reset_temperature": "Revert manual overrides when the next schedule block begins.",
-                            "off_if_above_room_temp": "Turn off heating when the room is already warmer than the target.",
-                            "ui_change": "Detect and remember temperature changes made via the HA dashboard.",
-                            "physical_change": "Detect and remember temperature changes made on the TRV dial."
+                            "off_if_above_room_temp": "Turn off devices when the target temperature in the room has already been reached.",
+                            "enable_temporary_manual_override": "When a user manually changes the TRV or UI, override the schedule until the next schedule block starts."
                         }
                     },
                     "sec_away_mode": {
                         "name": "Away Mode Behavior",
                         "data": {
-                            "off_if_nobody_home": "OFF when nobody is home",
-                            "away_scheduler_mode": "Away: Follow schedule",
+                            "away_behavior": "Away Behavior",
                             "away_offset": "Away Offset Temperature",
                             "away_presence_mode": "Away: Use presence detection",
                             "away_ignore_people": "Away: ignore person tracking"
                         },
                         "data_description": {
-                            "off_if_nobody_home": "Completely turn off heating when all persons are away.",
-                            "away_scheduler_mode": "If enabled, the system continues following the schedule even when no one is home.",
-                            "away_offset": "Temperature reduction applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
+                            "away_behavior": "Select what the system should do when the house is empty.",
+                            "away_offset": "Temperature adjustment applied when the system is in away mode. Set to 0 to disable – away mode will then have no effect on temperature.",
                             "away_presence_mode": "If enabled, local presence sensors still trigger comfort mode even during absence.",
                             "away_ignore_people": "Do not use person tracking for away mode decisions."
                         }
@@ -651,9 +639,9 @@
                             "aggressive_offset": "Additional Offset (°C)"
                         },
                         "data_description": {
-                            "aggressive_mode_selector": "Boost heating when temperature is far from target.",
-                            "aggressive_range": "Temperature difference that activates aggressive heating.",
-                            "aggressive_offset": "Additional temperature offset during aggressive heating."
+                            "aggressive_mode_selector": "Boost performance when temperature is far from target.",
+                            "aggressive_range": "Temperature difference that activates aggressive mode.",
+                            "aggressive_offset": "Additional temperature offset during aggressive mode."
                         }
                     },
                     "sec_adjustments": {
@@ -692,7 +680,7 @@
                             "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
                             "idle_temperature": "Fallback temperature when the automation is inactive.",
                             "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the heating / AC when the room reaches this temperature."
+                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
                         }
                     },
                     "sec_valve_positioning": {
@@ -870,11 +858,11 @@
             "generic_calibration_limit": {
                 "name": "Calibration Limit"
             },
-            "max_optimum_start": {
-                "name": "Smart Preheating Max. Duration"
+            "max_smart_preconditioning": {
+                "name": "Smart Pre-Conditioning Max. Duration"
             },
-            "learned_heating_rate": {
-                "name": "Smart Preheating Learning Rate"
+            "learned_climate_rate": {
+                "name": "Smart Pre-Conditioning Learning Rate"
             }
         },
         "switch": {
@@ -896,11 +884,14 @@
             "automation_active": {
                 "name": "Automation Active"
             },
-            "manual_override_pause": {
-                "name": "Manual Override (Pause)"
+            "manual_override": {
+                "name": "Manual Override"
             },
-            "optimum_start": {
-                "name": "Smart Preheating"
+            "temporary_manual_override": {
+                "name": "Temporary Manual Override"
+            },
+            "smart_preconditioning": {
+                "name": "Smart Pre-Conditioning"
             },
             "sunshine_offset": {
                 "name": "Sunshine Offset"
@@ -923,7 +914,7 @@
                 "name": "Window Open"
             },
             "away_mode": {
-                "name": "Away Mode"
+                "name": "Away Offset"
             },
             "presence_active": {
                 "name": "Presence Detected"
@@ -991,6 +982,14 @@
                 "fri": "Friday",
                 "sat": "Saturday",
                 "sun": "Sunday"
+            }
+        },
+        "away_behavior": {
+            "options": {
+                "offset": "Apply Offset",
+                "eco": "Eco Temperature",
+                "off": "Turn Off",
+                "ignore": "Ignore Absence"
             }
         }
     }

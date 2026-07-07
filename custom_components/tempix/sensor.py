@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import json
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
@@ -52,14 +53,14 @@ async def async_setup_entry(
         TempixSensor(
             coordinator, engine, entry,
             "external_temperature", "External Room Temperature",
-            "mdi:thermometer-bluetooth", SensorDeviceClass.TEMPERATURE,
+            "mdi:thermometer", SensorDeviceClass.TEMPERATURE,
             temp_unit,
             lambda e: e._resolve_room_temp()
         ),
         TempixSensor(
             coordinator, engine, entry,
             "outside_temperature", "Outside Temperature",
-            "mdi:thermometer-minus", SensorDeviceClass.TEMPERATURE,
+            "mdi:thermometer", SensorDeviceClass.TEMPERATURE,
             temp_unit,
             lambda e: e._temp_state(e.config.outside_temp_sensor)
         ),
@@ -68,7 +69,7 @@ async def async_setup_entry(
             "active_adjustment", "Active Adjustment",
             "mdi:tune", None,
             None,
-            lambda e: _get_adjustment_name(e)
+            lambda e: _get_adjustment_json(e)
         ),
         TempixSensor(
             coordinator, engine, entry,
@@ -155,12 +156,11 @@ def _get_calibration_offset(coordinator, engine) -> str:
     return ", ".join([f"{k}: {v}" for k, v in offsets.items()])
 
 
-def _get_adjustment_name(engine) -> str:
+def _get_adjustment_json(engine) -> str:
     adj = engine.get_active_adjustment()
     if not adj:
-        return "None"
-    # Try to find a name or description, fallback to ID/Time
-    return str(adj.get("name", adj.get("time", "Unknown")))
+        return "{}"
+    return json.dumps(adj)
 
 
 def _get_scheduler_name(engine, hass) -> str:
@@ -227,7 +227,6 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
         self._engine = engine
         self._entry = entry
         self._attr_unique_id = f"{entry.entry_id}_status"
-        self._attr_name = "Status"
         self._attr_icon = "mdi:fire"
         self._attr_translation_key = "status"
 
@@ -236,7 +235,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=self._entry.title,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
             model="Tempix",
             sw_version=VERSION,
         )
@@ -265,7 +264,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
             "external_room_temperature": engine._resolve_room_temp(),
             "season_mode": engine.is_season_mode(),
             "automation_active": engine.is_automation_active(),
-            "manual_override_pause": engine.config.manual_override_pause,
+            "manual_override": engine.config.manual_override,
             "outside_temperature": engine._float_state(engine.config.outside_temp_sensor),
             "anybody_home": engine.is_anybody_home(),
             "scheduler_active": engine.is_scheduler_active(),
@@ -279,7 +278,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
             "away": engine.is_away(),
             "force_comfort": engine.is_force_comfort_temp(),
             "force_eco": engine.is_force_eco_temp(),
-            "optimum_start_active": getattr(engine, "is_optimum_start_active", lambda: False)(),
+            "smart_preconditioning_active": getattr(engine, "is_smart_preconditioning_active", lambda: False)(),
             "set_comfort": engine.should_set_comfort(),
             "adjustment": adj.get("name") if adj else None,
             "last_changes": self._coordinator.last_changes,
@@ -323,7 +322,8 @@ class TempixSensor(SensorEntity, RestoreEntity):
         self._val_func = val_func
         
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
+        if key.startswith("trv_"):
+            self._attr_name = name
         self._attr_translation_key = key
         self._attr_icon = icon
         if device_class:
@@ -336,7 +336,7 @@ class TempixSensor(SensorEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=coordinator.config.name,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
             model="Virtual Thermostat",
             sw_version=VERSION,
         )

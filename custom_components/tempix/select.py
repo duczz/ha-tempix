@@ -76,7 +76,7 @@ class TempixSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=self._entry.title,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
             model="Tempix",
             sw_version=VERSION,
         )

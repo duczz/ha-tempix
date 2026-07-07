@@ -185,15 +185,66 @@ class CalendarMixin:
 
         return (tier, time_dist, found_prio, duration_prio, cal_idx)
 
-    def _process_event_list(self, events: list[dict], active_only: bool = True, use_at_state: bool = False) -> dict | None:
-        """Find the best matching event from a list (filter + priority)."""
-        event_filters = self.config.calendar_event
-        room_filter = self.config.calendar_room
-        now = datetime.now(UTC)
+    def _event_filter_prio(self, ev: dict) -> int | None:
+        """Apply this room's location + keyword filters to a single event.
 
-        filters: list[str] = []
+        Returns the keyword priority index (lower = earlier in the
+        ``calendar_event`` filter list, 999 if no keyword filter is set) or
+        ``None`` if the event does not belong to this room.
+        Single source of truth for event filtering — used by
+        ``_process_event_list`` and ``get_filtered_calendar_transitions``.
+        """
+        room_filter = self.config.calendar_room
+        if room_filter:
+            room_filters = [rf.strip().lower() for rf in re.split(r"[,;]", room_filter) if rf.strip()]
+            location = (ev.get("location") or "").lower()
+            event_locations = [loc.strip().lower() for loc in re.split(r"[,;]", location) if loc.strip()]
+            if not event_locations:
+                event_locations = [""]
+            if not any(rf in el for rf in room_filters for el in event_locations):
+                return None
+
+        event_filters = self.config.calendar_event
+        found_prio = 999
         if event_filters:
             filters = [f.strip().lower() for f in re.split(r"[,;]", event_filters) if f.strip()]
+            summary = ev.get("summary", "Termin") or ""
+            for i, f in enumerate(filters):
+                if f in summary.lower():
+                    found_prio = i
+                    break
+            if found_prio == 999:
+                return None
+
+        return found_prio
+
+    def get_filtered_calendar_transitions(self) -> list[datetime]:
+        """Future start/end times of THIS room's fetched calendar events.
+
+        A9: A shared calendar ENTITY exposes whichever event is currently
+        running in its attributes — possibly another room's — so entity
+        attributes are unreliable as transition source. The fetched events,
+        reduced to this room via the location/keyword filters, are the only
+        room-accurate source for the next phase boundary.
+        """
+        if not self._calendar_events:
+            return []
+
+        now = datetime.now(UTC)
+        transitions: list[datetime] = []
+        for cal_id in self.config.calendar:
+            for ev in self._calendar_events.get(cal_id, []):
+                if self._event_filter_prio(ev) is None:
+                    continue
+                for key in ("start_time", "start", "end_time", "end"):
+                    dt = self._parse_dt(ev.get(key))
+                    if dt and dt > now:
+                        transitions.append(dt)
+        return transitions
+
+    def _process_event_list(self, events: list[dict], active_only: bool = True, use_at_state: bool = False) -> dict | None:
+        """Find the best matching event from a list (filter + priority)."""
+        now = datetime.now(UTC)
 
         best_event: dict | None = None
         best_score: tuple | None = None
@@ -204,8 +255,6 @@ class CalendarMixin:
             if "end" in ev and "end_time" not in ev:
                 ev["end_time"] = ev["end"]
 
-            summary = ev.get("summary", "Termin")
-            location = (ev.get("location") or "").lower()
             start_dt = self._parse_dt(ev.get("start_time"))
             end_dt = self._parse_dt(ev.get("end_time"))
 
@@ -220,23 +269,9 @@ class CalendarMixin:
             if active_only and not is_active:
                 continue
 
-            # Location filter
-            if room_filter:
-                room_filters = [rf.strip().lower() for rf in re.split(r"[,;]", room_filter) if rf.strip()]
-                event_locations = [loc.strip().lower() for loc in re.split(r"[,;]", location) if loc.strip()]
-                if not event_locations:
-                    event_locations = [""]
-                if not any(rf in el for rf in room_filters for el in event_locations):
-                    continue
-
-            found_prio = 999
-            if filters:
-                for i, f in enumerate(filters):
-                    if f in summary.lower():
-                        found_prio = i
-                        break
-                if found_prio == 999:
-                    continue
+            found_prio = self._event_filter_prio(ev)
+            if found_prio is None:
+                continue
 
             score = self._score_event(ev, is_active, found_prio, now)
             if best_score is None or score < best_score:
@@ -673,16 +708,16 @@ class CalendarMixin:
 
         daily_start_found, daily_end_found = self._get_daily_time_window_dt(time_tag if time_tag else "")
 
-        max_dur = self.config.max_optimum_start
+        max_dur = self.config.max_smart_preconditioning
         max_mins = max_dur.total_seconds() / 60.0
 
-        preheat_minutes = 0.0
-        if self.config.optimum_start:
+        precondition_minutes = 0.0
+        if self.config.smart_preconditioning:
             room_temp = self._resolve_room_temp()
             target_comfort = self.resolve_comfort_temperature()
             if room_temp is not None and target_comfort is not None and room_temp < target_comfort:
-                heat_up_rate = self._get_effective_heating_rate()
-                preheat_minutes = min(max_mins, ((target_comfort - room_temp) / heat_up_rate) * 60)
+                conditioning_rate = self._get_effective_conditioning_rate()
+                precondition_minutes = min(max_mins, ((target_comfort - room_temp) / conditioning_rate) * 60)
 
         now = datetime.now(UTC)
 
@@ -695,8 +730,8 @@ class CalendarMixin:
                     if daily_start_found <= local_now < daily_end_found:
                         return True
 
-                    if preheat_minutes > 0:
-                        dt_preheat_start = daily_start_found - timedelta(minutes=preheat_minutes)
+                    if precondition_minutes > 0:
+                        dt_preheat_start = daily_start_found - timedelta(minutes=precondition_minutes)
                         if dt_preheat_start <= local_now < daily_start_found:
                             return True
 
@@ -705,8 +740,8 @@ class CalendarMixin:
             else:
                 return False
 
-        if preheat_minutes > 0 and start_time:
-            preheat_start = start_time - timedelta(minutes=preheat_minutes)
+        if precondition_minutes > 0 and start_time:
+            preheat_start = start_time - timedelta(minutes=precondition_minutes)
             if preheat_start <= now < start_time:
                 return True
 

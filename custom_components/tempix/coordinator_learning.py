@@ -1,8 +1,8 @@
 """
-Tempix – Heating Rate Learner.
+Tempix – Climate Rate Learner.
 
 Tracks temperature rise during comfort phases to adaptively learn
-the room's heating rate (°C/h) via exponential moving average.
+the room's climate conditioning rate (°C/h) via exponential moving average.
 """
 from __future__ import annotations
 
@@ -14,14 +14,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from custom_components.tempix.config_model import TempixConfig
-from custom_components.tempix.const import CONF_LEARNED_HEATING_RATE
+from custom_components.tempix.const import CONF_LEARNED_CLIMATE_RATE
 
 _STORAGE_VERSION = 1
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class HeatingRateLearner:
+class ClimateRateLearner:
     """Learns and persists the room heating/cooling rate in °C/h."""
 
     def __init__(
@@ -35,7 +35,7 @@ class HeatingRateLearner:
         self._config = config
         self._engine = engine
         self._entry_id = entry_id
-        self._heating_session: dict[str, Any] | None = None
+        self._climate_session: dict[str, Any] | None = None
         self._store: Store | None = None
 
     def _get_store(self) -> Store:
@@ -44,13 +44,13 @@ class HeatingRateLearner:
         return self._store
 
     async def async_load(self) -> None:
-        """Load persisted heating rate from storage and apply to config."""
+        """Load persisted climate rate from storage and apply to config."""
         try:
             stored = await self._get_store().async_load()
-            if stored and CONF_LEARNED_HEATING_RATE in stored:
-                rate = stored[CONF_LEARNED_HEATING_RATE]
+            if stored and CONF_LEARNED_CLIMATE_RATE in stored:
+                rate = stored[CONF_LEARNED_CLIMATE_RATE]
                 if self._is_valid_rate(rate):
-                    self._config.learned_heating_rate = float(rate)
+                    self._config.learned_climate_rate = float(rate)
                     self._debug_log(f"Learning: Loaded rate {rate:.2f}°C/h from storage")
         except Exception as exc:
             _LOGGER.warning("%s: Failed to load learning storage: %s", self._config.name, exc)
@@ -62,7 +62,7 @@ class HeatingRateLearner:
             _LOGGER.debug("TPX Coord [%s]: %s", self._config.name, msg)
 
     async def update(self, target_temp: float | None, hvac_mode: str) -> None:
-        """Track temperature rise during comfort phases to learn room heating rate."""
+        """Track temperature rise during comfort phases to learn room climate rate."""
         if target_temp is None:
             return
 
@@ -77,27 +77,27 @@ class HeatingRateLearner:
             and (target_temp - current_temp) * factor > 0.5
         )
 
-        if is_active_mode and temp_away_from_target and self._engine.is_automation_active() and not self._engine.config.manual_override_pause:
-            if self._heating_session is None:
+        if is_active_mode and temp_away_from_target and self._engine.is_automation_active() and not self._engine.config.manual_override:
+            if self._climate_session is None:
                 self._debug_log(
-                    f"Learning: Starting heating session "
+                    f"Learning: Starting climate session "
                     f"(temp={current_temp:.1f}°, target={target_temp:.1f}°)"
                 )
-                self._heating_session = {
+                self._climate_session = {
                     "start_temp": current_temp,
                     "start_time": now,
                     "target_temp": target_temp,
                 }
-            elif abs(self._heating_session["target_temp"] - target_temp) > 0.3:
+            elif abs(self._climate_session["target_temp"] - target_temp) > 0.3:
                 # Target changed significantly – restart session
-                self._heating_session["start_temp"] = current_temp
-                self._heating_session["start_time"] = now
-                self._heating_session["target_temp"] = target_temp
+                self._climate_session["start_temp"] = current_temp
+                self._climate_session["start_time"] = now
+                self._climate_session["target_temp"] = target_temp
 
         # 2. End session detection & rate calculation
-        elif self._heating_session is not None:
-            start_temp = self._heating_session["start_temp"]
-            start_time = self._heating_session["start_time"]
+        elif self._climate_session is not None:
+            start_temp = self._climate_session["start_temp"]
+            start_time = self._climate_session["start_time"]
 
             duration_hours = (now - start_time).total_seconds() / 3600.0
             temp_diff = (current_temp or 0.0) - start_temp
@@ -123,7 +123,7 @@ class HeatingRateLearner:
 
                     # Sanity bounds: 0.2 – 10 °C/h
                     if 0.2 <= calc_rate <= 10.0:
-                        old_rate = self._config.learned_heating_rate
+                        old_rate = self._config.learned_climate_rate
                         new_rate = (old_rate * 0.8) + (calc_rate * 0.2)  # EMA
 
                         self._debug_log(
@@ -133,9 +133,9 @@ class HeatingRateLearner:
                         )
 
                         if self._is_valid_rate(new_rate):
-                            self._config.learned_heating_rate = round(new_rate, 2)
+                            self._config.learned_climate_rate = round(new_rate, 2)
                             self._get_store().async_delay_save(
-                                lambda: {CONF_LEARNED_HEATING_RATE: self._config.learned_heating_rate},
+                                lambda: {CONF_LEARNED_CLIMATE_RATE: self._config.learned_climate_rate},
                                 30.0,
                             )
                         else:
@@ -150,9 +150,9 @@ class HeatingRateLearner:
                         f"(diff={temp_diff:.1f}°, dur={duration_hours:.2f}h)."
                     )
 
-                self._heating_session = None
+                self._climate_session = None
 
     @staticmethod
     def _is_valid_rate(value: Any) -> bool:
-        """Return True if *value* is a plausible heating rate."""
+        """Return True if *value* is a plausible climate rate."""
         return isinstance(value, (int, float)) and value > 0

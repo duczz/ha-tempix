@@ -21,9 +21,15 @@ from custom_components.tempix.const import (
     CONF_PARTY_TEMPERATURE,
     CONF_VACATION_TEMPERATURE,
     CONF_SUNSHINE_OFFSET_VALUE,
-    CONF_MAX_OPTIMUM_START,
-    CONF_LEARNED_HEATING_RATE,
+    CONF_MAX_SMART_PRECONDITIONING,
+    CONF_LEARNED_CLIMATE_RATE,
     DEFAULT_VACATION_TEMP,
+    DEFAULT_PARTY_TEMP,
+    DEFAULT_COMFORT_TEMP,
+    DEFAULT_ECO_TEMP,
+    DEFAULT_SUNSHINE_OFFSET_VALUE,
+    DEFAULT_CLIMATE_RATE,
+    DEFAULT_MAX_SMART_PRECONDITIONING,
 )
 
 
@@ -42,37 +48,37 @@ async def async_setup_entry(
     numbers = [
         TempixNumber(
             coordinator, entry,
-            CONF_TEMPERATURE_COMFORT_STATIC, "Comfort Temperature", "mdi:thermometer",
+            CONF_TEMPERATURE_COMFORT_STATIC, "mdi:thermometer",
             5.0, 35.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_TEMPERATURE_ECO_STATIC, "Eco Temperature", "mdi:thermometer-low",
+            CONF_TEMPERATURE_ECO_STATIC, "mdi:thermometer-low",
             5.0, 35.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_PARTY_TEMPERATURE, "Party Temperature", "mdi:party-popper",
+            CONF_PARTY_TEMPERATURE, "mdi:party-popper",
             5.0, 35.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_VACATION_TEMPERATURE, "Vacation Temperature", "mdi:airplane",
+            CONF_VACATION_TEMPERATURE, "mdi:airplane",
             5.0, 30.0, 0.5, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_SUNSHINE_OFFSET_VALUE, "Sunshine Offset Value", "mdi:weather-sunny",
+            CONF_SUNSHINE_OFFSET_VALUE, "mdi:weather-sunny",
             0.0, 5.0, 0.1, NumberDeviceClass.TEMPERATURE, temp_unit
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_MAX_OPTIMUM_START, "Smart Preheating Max. Duration", "mdi:clock-end",
+            CONF_MAX_SMART_PRECONDITIONING, "mdi:clock-end",
             0, 240, 5, None, "min"
         ),
         TempixNumber(
             coordinator, entry,
-            CONF_LEARNED_HEATING_RATE, "Smart Preheating Learning Rate", "mdi:heating-coil",
+            CONF_LEARNED_CLIMATE_RATE, "mdi:heating-coil",
             0.1, 5.0, 0.1, None, "°C/h"
         ),
     ]
@@ -91,7 +97,6 @@ class TempixNumber(NumberEntity, RestoreEntity):
         coordinator,
         entry: ConfigEntry,
         key: str,
-        name: str,
         icon: str,
         min_value: float,
         max_value: float,
@@ -104,7 +109,6 @@ class TempixNumber(NumberEntity, RestoreEntity):
         self._key = key
         
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
         self._attr_translation_key = key
         self._attr_icon = icon
         
@@ -118,7 +122,7 @@ class TempixNumber(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=self._entry.title,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
             model="Tempix",
             sw_version=VERSION,
         )
@@ -133,7 +137,19 @@ class TempixNumber(NumberEntity, RestoreEntity):
         val = getattr(self._coordinator.config, self._key, None)
         if val is None:
             if self._key == CONF_VACATION_TEMPERATURE:
-                return DEFAULT_VACATION_TEMP
+                return float(DEFAULT_VACATION_TEMP)
+            if self._key == CONF_PARTY_TEMPERATURE:
+                return float(DEFAULT_PARTY_TEMP)
+            if self._key == CONF_TEMPERATURE_COMFORT_STATIC:
+                return float(DEFAULT_COMFORT_TEMP)
+            if self._key == CONF_TEMPERATURE_ECO_STATIC:
+                return float(DEFAULT_ECO_TEMP)
+            if self._key == CONF_SUNSHINE_OFFSET_VALUE:
+                return float(DEFAULT_SUNSHINE_OFFSET_VALUE)
+            if self._key == CONF_LEARNED_CLIMATE_RATE:
+                return float(DEFAULT_CLIMATE_RATE)
+            if self._key == CONF_MAX_SMART_PRECONDITIONING:
+                return float(DEFAULT_MAX_SMART_PRECONDITIONING.get("hours", 0) * 60 + DEFAULT_MAX_SMART_PRECONDITIONING.get("minutes", 0))
             return 0.0
         if isinstance(val, timedelta):
             return val.total_seconds() / 60.0
@@ -144,7 +160,7 @@ class TempixNumber(NumberEntity, RestoreEntity):
         new_options = dict(self._entry.options)
         
         # Convert minutes back to duration dict for compatibility
-        if self._key == CONF_MAX_OPTIMUM_START:
+        if self._key == CONF_MAX_SMART_PRECONDITIONING:
             new_options[self._key] = {"minutes": int(value)}
         else:
             new_options[self._key] = value

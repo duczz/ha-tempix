@@ -74,6 +74,7 @@ CONF_ADJUSTMENTS = "adjustments"
 CONF_SYNC_ADJUSTMENTS = "sync_adjustments"
 CONF_FORCE_COMFORT_SWITCH = "force_comfort_switch"
 CONF_FORCE_ECO_SWITCH = "force_eco_switch"
+CONF_ENABLE_TEMPORARY_MANUAL_OVERRIDE = "enable_temporary_manual_override"
 
 CONF_PARTY_MODE_SWITCH = "party_mode_switch"
 CONF_PARTY_TEMPERATURE = "party_temperature"
@@ -84,16 +85,12 @@ CONF_VACATION_TEMPERATURE = "vacation_temperature"
 
 # 9. Temperature Tweaks
 CONF_MIN_INSTEAD_OF_OFF = "min_instead_of_off"
-CONF_RESET_TEMPERATURE = "reset_temperature"
 CONF_OFF_IF_ABOVE_ROOM_TEMP = "off_if_above_room_temp"
-CONF_OFF_IF_NOBODY_HOME = "off_if_nobody_home"
-CONF_UI_CHANGE = "ui_change"
-CONF_PHYSICAL_CHANGE = "physical_change"
+CONF_AWAY_BEHAVIOR = "away_behavior"
 CONF_HYSTERESIS = "hysteresis"
 
 # 10. Away Mode
 CONF_AWAY_OFFSET = "away_offset"
-CONF_AWAY_SCHEDULER_MODE = "away_scheduler_mode"
 CONF_AWAY_PRESENCE_MODE = "away_presence_mode"
 CONF_AWAY_IGNORE_PEOPLE = "away_ignore_people"
 
@@ -153,12 +150,12 @@ CONF_LOG_LEVEL = "log_level"
 
 # 19. Automation Control
 CONF_AUTOMATION_ACTIVE = "automation_active"
-CONF_MANUAL_OVERRIDE_PAUSE = "manual_override_pause"
+CONF_MANUAL_OVERRIDE = "manual_override"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_SENSOR_RETENTION = "sensor_retention"
 
 # 20. Evolution Features (v1.3.0)
-CONF_OPTIMUM_START = "optimum_start"
+CONF_SMART_PRECONDITIONING = "smart_preconditioning"
 CONF_SUNSHINE_OFFSET = "sunshine_offset"
 CONF_SUNSHINE_OFFSET_VALUE = "sunshine_offset_value"
 
@@ -176,11 +173,18 @@ CONF_HOLIDAY_CALENDAR = "holiday_calendar"
 CONF_HOLIDAY_USE_DAY = "holiday_use_day"
 
 # 22. Adaptive Learning (v1.5.0)
-CONF_LEARNED_HEATING_RATE = "learned_heating_rate"
-CONF_HEATING_RATE_LOOKBACK = "heating_rate_lookback"
-CONF_MAX_OPTIMUM_START = "max_optimum_start"
+CONF_LEARNED_CLIMATE_RATE = "learned_climate_rate"
+CONF_CLIMATE_RATE_LOOKBACK = "climate_rate_lookback"
+CONF_MAX_SMART_PRECONDITIONING = "max_smart_preconditioning"
 
-# ─── Defaults ─────────────────────────────────────────────────────────────────
+# ─── Away Behavior Options ────────────────────────────────────────────────────────
+
+AWAY_BEHAVIOR_OFFSET = "offset"
+AWAY_BEHAVIOR_ECO = "eco"
+AWAY_BEHAVIOR_OFF = "off"
+AWAY_BEHAVIOR_IGNORE = "ignore"
+
+# ─── HVAC Options ─────────────────────────────────────────────────────────────────
 
 DEFAULT_NAME = "Tempix"
 DEFAULT_COMFORT_TEMP = 22.0
@@ -211,9 +215,9 @@ DEFAULT_VALVE_TIMEOUT = {"hours": 0, "minutes": 20, "seconds": 0}
 DEFAULT_SENSOR_RETENTION = {"hours": 0, "minutes": 0, "seconds": 30}
 DEFAULT_CALENDAR_SCAN_INTERVAL = 15
 DEFAULT_SUNSHINE_OFFSET_VALUE = 1.0
-DEFAULT_HEATING_RATE = 1.0  # °C per hour
-DEFAULT_HEATING_RATE_LOOKBACK = 5  # cycles
-DEFAULT_MAX_OPTIMUM_START = {"hours": 2, "minutes": 0, "seconds": 0}
+DEFAULT_CLIMATE_RATE = 1.0  # °C per hour
+DEFAULT_CLIMATE_RATE_LOOKBACK = 5  # cycles
+DEFAULT_MAX_SMART_PRECONDITIONING = {"hours": 2, "minutes": 0, "seconds": 0}
 
 DEFAULT_FROST_DURATION = {"days": 1, "hours": 0, "minutes": 0, "seconds": 0}
 DEFAULT_WINDOW_REACTION_OPEN = {"hours": 0, "minutes": 1, "seconds": 0}
@@ -252,17 +256,18 @@ CALIBRATION_STEP_SIZE_OPTIONS = [
 TADO_MIN_OFFSET = -10.9
 TADO_MAX_OFFSET = 10.9
 
-# ─── Heating State Enum ───────────────────────────────────────────────────────
+# ─── Climate State Enum ───────────────────────────────────────────────────────
 
-class HeatingState(Enum):
+class ClimateState(Enum):
     """Explicit heating state – formalises the implicit priority chain.
 
     Priority order (highest wins):
         MANUAL_OVERRIDE > PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN >
-        LIMING > VACATION > PARTY > FORCE_COMFORT > FORCE_ECO > ADJUSTMENT >
-        SMART_PREHEATING > AWAY > COMFORT > ECO
+        LIMING > VACATION > PARTY > FORCE_COMFORT > FORCE_ECO > TEMPORARY_MANUAL_OVERRIDE >
+        ADJUSTMENT > SMART_PRECONDITIONING > AWAY > COMFORT > ECO
     """
     MANUAL_OVERRIDE = "manual_override"
+    TEMPORARY_MANUAL_OVERRIDE = "temporary_manual_override"
     PAUSED = "paused"
     INACTIVE = "inactive"
     FROST_PROTECTION = "frost_protection"
@@ -273,7 +278,7 @@ class HeatingState(Enum):
     FORCE_COMFORT = "force_comfort"
     FORCE_ECO = "force_eco"
     ADJUSTMENT = "adjustment"
-    SMART_PREHEATING = "smart_preheating"
+    SMART_PRECONDITIONING = "smart_preconditioning"
     AWAY = "away"
     COMFORT = "comfort"
     ECO = "eco"

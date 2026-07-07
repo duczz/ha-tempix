@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime, timedelta, timezone, UTC
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from homeassistant.core import HomeAssistant
 
@@ -38,12 +38,13 @@ class EngineBaseMixin:
 
     # ── initialisation ───────────────────────────────────────────────────────
 
-    def __init__(self, hass: HomeAssistant, config: TempixConfig) -> None:
+    def __init__(self, hass: HomeAssistant, config: TempixConfig, on_dirty: Callable[[], None] | None = None) -> None:
         self.hass: HomeAssistant = hass
         self.config: TempixConfig = config
+        self._on_dirty: Callable[[], None] | None = on_dirty
         self._state_snapshot: dict[str, Any] = {}
         self._startup_time: datetime | None = None
-        self._optimum_start_active: bool = False
+        self._smart_preconditioning_active: bool = False
         self._calibration_entity_map: dict[str, str | None] = {}
         self._calendar_events: dict[str, list[dict[str, Any]]] = {}
         self._schedule_slots: dict[str, dict[str, list[dict[str, Any]]]] = {}
@@ -70,6 +71,19 @@ class EngineBaseMixin:
     def set_state_snapshot(self, snapshot: dict[str, Any]) -> None:
         """Inject a snapshot of states to be used for this calculation cycle."""
         self._state_snapshot = snapshot
+
+    def set_on_dirty(self, callback: Callable[[], None]) -> None:
+        """Inject a callback to be notified when internal state changes."""
+        self._on_dirty = callback
+
+    def restore_outside_state(self, is_outside_ok: bool | None) -> None:
+        """Restore hysteresis state after reboot."""
+        self._last_outside_ok = is_outside_ok
+
+    @property
+    def outside_ok(self) -> bool | None:
+        """Return the current hysteresis state."""
+        return self._last_outside_ok
 
     # ── logging ──────────────────────────────────────────────────────────────
 

@@ -6,15 +6,15 @@
 
 [![HACS][hacs-badge]][hacs-url]
 [![Home Assistant][ha-badge]][ha-url]
-[![Version][version-badge]][release-url]
+[![Release][version-badge]][release-url]
 [![IoT Class][iot-badge]][iot-url]
 
 [hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge&logo=homeassistantcommunitystore&logoColor=white
 [hacs-url]: https://hacs.xyz
 [ha-badge]: https://img.shields.io/badge/Home%20Assistant-2024.6+-41BDF5.svg?style=for-the-badge&logo=homeassistant&logoColor=white
 [ha-url]: https://www.home-assistant.io
-[version-badge]: https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/duczz/ha-tempix/main/custom_components/tempix/manifest.json&query=$.version&label=version&color=22c55e&style=for-the-badge&logo=github&logoColor=white
-[release-url]: https://github.com/duczz/ha-tempix/releases
+[version-badge]: https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/duczz/ha-tempix/main/custom_components/tempix/manifest.json&query=$.version&label=release&color=22c55e&style=for-the-badge&logo=github&logoColor=white
+[release-url]: https://github.com/duczz/ha-tempix/releases/latest
 [iot-badge]: https://img.shields.io/badge/IoT%20Class-local__push-22c55e.svg?style=for-the-badge
 [iot-url]: https://www.home-assistant.io/integrations
 
@@ -24,7 +24,7 @@
 
 ---
 
-Verwandelt deine TRV-Thermostate und Klimaanlage in ein adaptives, selbstlernendes Heiz- & Kühlsystem – rein lokal, ohne Cloud, ohne Abo.
+Verwandelt deine TRV-Thermostate und Klimaanlage in ein adaptives, selbstlernendes Heiz- & Kühlsystem.
 
 ---
 
@@ -42,20 +42,21 @@ Vielen Dank für deine Unterstützung! ❤️
 ## ✨ Features
 
 - **📅 Zeitplan- & Kalendersteuerung** – Schedule-Helper oder Google/iCloud-Kalender. Profi-Befehle in der Kalender-Beschreibung (`comfort: 21.5`, `time: 08:00 - 20:00`, `use_day: sunday`). Aktive Kalender-Temperaturen sichtbar im Status-Sensor (`Comfort (📅 21°C)`). Zeilen mit `#` werden als Kommentare ignoriert.
-- **👥 Anwesenheitserkennung** – Personen, Geräte, Proximity (Geo-Fencing) und Präsenz-Sensoren. Automatische Absenkung bei Abwesenheit
+- **👥 Anwesenheitserkennung** – Personen, Geräte, Proximity (Geo-Fencing) und Präsenz-Sensoren. Konfigurierbares Verhalten bei Abwesenheit: Fester Eco-Wert, dynamischer Temperatur-Offset, komplett Abschalten oder Ignorieren.
 - **🪟 Fenster-Reaktion** – Multi-Sensor-Fenstererkennung mit Mehrheitsentscheid. Ein defekter Sensor blockiert nicht mehr die gesamte Erkennung
 - **🧭 TRV-Kalibrierung** – Generisch (alle TRVs), Native Offset (Tado, ZigBee) oder komplett aus
 - **❄️ Frostschutz** – Greift auch wenn der Saison-Modus aktiv ist (Sommerbetrieb)
 - **🚀 Aggressiver Modus (Push-To-Target)** – Erzwingt schnelles Aufheizen nach Abwesenheit oder Lüften
-- **⏱️ Smart Preheating** – Lernt Aufheizrate (EMA). Startet automatisch zum richtigen Zeitpunkt
+- **⏱️ Smart Pre-Conditioning** – Lernt Aufheizrate (EMA). Startet automatisch zum richtigen Zeitpunkt
 - **☀️ Sunshine Offset** – Reduziert Comfort-Temp bei Sonnenschein (nur `sunny`)
 - **🎌 Feiertags-Erkennung** – Automatischer Zeitplan-Wechsel an Feiertagen via HA Holiday-Integration
 - **🎉 Party- & Gäste-Modus** – Mit optionalem Auto-Timer via Service
 - **✈️ Urlaubs-Modus** – Eigene Urlaubstemperatur, per Switch oder Kalender-Event aktivierbar
 - **🏖️ Saison-Modus** – Außentemperatur-Gate mit Hysterese verhindert stetes Hin- und Herschalten
 - **🔧 Ventilpositionierung** – Direkte Ventil-% Steuerung für unterstützte TRVs
-- **⚡ Force Comfort / Force Eco** – Ad-hoc-Override per Switch: erzwingt sofort Comfort- oder Eco-Temperatur unabhängig vom Zeitplan
-- **✋ Manual Override / Pause** – Hands-off-Modus: Tempix greift komplett zurück, du steuerst den TRV manuell — ohne die Integration deaktivieren zu müssen
+- **🔘 Force Comfort / Force Eco** - Ad-hoc-Override per Switch: erzwingt sofort Comfort- oder Eco-Temperatur unabhängig vom Zeitplan
+- **⏱️ Temporary Override (Echo-Tracking)** - Drehst du manuell am Thermostat (oder an der Tempix-Karte), friert Tempix den Zeitplan ein, bis zur nächsten Zeitplan-Phase (oder max. 24h). Schutzfunktionen wie Fenster-Erkennung und Frostschutz übersteuern den Override jederzeit. Lässt sich per HA-Switch abbrechen oder setzen.
+- **🤫 Manual Override / Pause** - Hands-off-Modus: Tempix greift komplett zurück - die Tempix-Karte funktioniert dabei als direkte Fernbedienung und reicht deine Eingaben 1:1 an die Geräte durch (Passthrough), ohne die Integration deaktivieren zu müssen
 - **🔩 Liming-Schutz** – Automatische Zwangsspülung des Ventils (konfigurierbarer Wochentag & Uhrzeit) verhindert Kalkablagerungen bei langen Stillstandsphasen
 - **🔄 Dynamic Reload** – Temperatures, Offsets & Switches sofort live ohne Neustart
 - **📊 HA Diagnostik** – Vollständiger State-Snapshot als JSON-Download
@@ -113,7 +114,7 @@ Die Konfiguration erfolgt vollständig über den **Config Flow** (6 Schritte):
 5. **Personen** & Fenster-Sensoren optional hinzufügen
 6. **Kalibrierung** & Schutzfunktionen einstellen
 
-**Fertig!** Die Integration erstellt automatisch alle Entities (~21 pro Raum).
+**Fertig!** Die Integration erstellt automatisch alle Entities (35+ pro Raum, plus 2 je TRV).
 
 ---
 
@@ -138,7 +139,7 @@ Die Konfiguration erfolgt vollständig über den **Config Flow** (6 Schritte):
 | **Typed Config** | `config_model.py` | Einmaliges Parsing beim Start, typisierte Dataclass |
 | **Engine** | `engine.py` + 7 Mixins | Reine Logik: Temperatur, Präsenz, Schutz, Kalender, Kalibrierung |
 | **Coordinator** | `coordinator.py` + 3 Helfer | State-Listener, Timer, TRV-Ansteuerung |
-| **Entities** | `climate/sensor/switch/number/select` | 21+ Entities pro Instanz |
+| **Entities** | `climate/sensor/switch/number/select` | 35+ Entities pro Instanz |
 
 ---
 

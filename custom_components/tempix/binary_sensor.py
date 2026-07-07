@@ -32,38 +32,38 @@ async def async_setup_entry(
     sensors = [
         TempixBinarySensor(
             coordinator, engine, entry,
-            "season_mode", "Season Mode",
+            "season_mode",
             "mdi:snowflake", None,
             lambda e: e.is_season_mode()
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
-            "anybody_home", "Persons & Devices", # anybody home
+            "anybody_home",
             "mdi:home-account", None,
             lambda e: e.is_anybody_home()
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
-            "window_open", "Window Open",
+            "window_open",
             "mdi:window-open", BinarySensorDeviceClass.WINDOW,
             lambda e: e.is_window_open()
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
-            "away_mode", "Away Mode",
+            "away_mode",
             "mdi:home-export-outline", None,
             lambda e: e.is_away()
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
-            "presence_active", "Presence Detection",
+            "presence_active",
             "mdi:motion-sensor", None,
             lambda e: e.is_presence_active()
         ),
 
         TempixBinarySensor(
             coordinator, engine, entry,
-            "proximity_arrived", "Proximity Arrived",
+            "proximity_arrived",
             "mdi:map-marker-radius", None,
             lambda e: e.check_proximity_arrived()
         ),
@@ -84,7 +84,6 @@ class TempixBinarySensor(BinarySensorEntity):
         engine,
         entry,
         key: str,
-        name: str,
         icon: str,
         device_class: BinarySensorDeviceClass | None,
         val_func,
@@ -96,7 +95,6 @@ class TempixBinarySensor(BinarySensorEntity):
         self._val_func = val_func
         
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_name = name
         self._attr_translation_key = key
         self._attr_icon = icon
         self._attr_device_class = device_class
@@ -105,7 +103,7 @@ class TempixBinarySensor(BinarySensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
             name=self._entry.title,
-            manufacturer="panhans / Martin Müller",
+            manufacturer="Martin Müller",
             model="Tempix",
             sw_version=VERSION,
         )

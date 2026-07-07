@@ -15,7 +15,8 @@ from homeassistant.util import dt as dt_util
 from custom_components.tempix.const import (
     SCHEDULING_MODE_CALENDAR,
     INVALID_STATES,
-    HeatingState,
+    ClimateState,
+    AWAY_BEHAVIOR_IGNORE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,6 +151,14 @@ class ScheduleMixin:
 
         return None
 
+    def get_adjustment_fingerprint(self) -> str | None:
+        """Return a deterministic fingerprint of the active adjustment block."""
+        adj = self.get_active_adjustment()
+        if not adj:
+            return None
+        # Use the ID if available, otherwise fallback to the time string
+        return adj.get("id", adj.get("time"))
+
     def get_adjustment_comfort(self, entry: dict | None) -> float | None:
         """Extract comfort temp from adjustment entry."""
         if not entry or "comfort" not in entry:
@@ -184,9 +193,9 @@ class ScheduleMixin:
 
     # ── optimum start ────────────────────────────────────────────────────────
 
-    def is_optimum_start_active(self) -> bool:
-        """Return ``True`` if optimum-start is currently pre-heating."""
-        return getattr(self, "_optimum_start_active", False)
+    def is_smart_preconditioning_active(self) -> bool:
+        """Return True if smart preconditioning is currently active."""
+        return getattr(self, "_smart_preconditioning_active", False)
 
     # ── core comfort decision ────────────────────────────────────────────────
 
@@ -212,7 +221,7 @@ class ScheduleMixin:
         insert at the correct position, and update this docstring accordingly.
         """
         scheduling_mode = self.config.scheduling_mode
-        self._optimum_start_active = False
+        self._smart_preconditioning_active = False
         if self.is_force_comfort_temp():
             return True
         if entry_mode == "eco":
@@ -232,8 +241,6 @@ class ScheduleMixin:
         pres_defined = self.is_presence_sensor_defined()
 
         comfort_state = False
-        sched_uncertain = False
-        pres_uncertain = False
 
         cached_home_status = None
         if self.is_person_defined() or self.is_proximity_defined():
@@ -265,36 +272,46 @@ class ScheduleMixin:
                     return cached_home_status
 
         # Optimum Start
-        if self.config.optimum_start and not comfort_state:
+        if self.config.smart_preconditioning and not comfort_state:
             next_start = self.get_next_schedule_transition()
             if next_start:
                 room_temp = self._resolve_room_temp()
                 target_comfort = self.resolve_comfort_temperature()
-                if room_temp is not None and target_comfort is not None and (target_comfort - room_temp) * self._factor > 0:
-                    heat_up_rate = max(0.1, self.config.learned_heating_rate)
-                    diff = abs(target_comfort - room_temp)
-                    preheat_minutes = (diff / heat_up_rate) * 60
+                if room_temp is not None and target_comfort is not None:
+                    needs_precondition = False
+                    if self.is_cooling:
+                        if room_temp > target_comfort:
+                            needs_precondition = True
+                    else:
+                        if room_temp < target_comfort:
+                            needs_precondition = True
 
-                    max_duration = self.config.max_optimum_start
-                    max_minutes = max_duration.total_seconds() / 60
-                    preheat_minutes = min(max_minutes, preheat_minutes)
+                    if needs_precondition:
+                        conditioning_rate = max(0.1, self.config.learned_climate_rate)
+                        diff = abs(target_comfort - room_temp)
+                        precondition_minutes = (diff / conditioning_rate) * 60
 
-                    now = datetime.now(UTC)
-                    if now + timedelta(minutes=preheat_minutes) >= next_start:
-                        label = "Pre-cooling" if self.is_cooling else "Pre-heating"
-                        self.debug_log(
-                            f"Smart Preheating: {label} {preheat_minutes:.1f}min early for {next_start}. "
-                            f"(Rate: {heat_up_rate}°C/h, Diff: {diff:.1f}°C)"
-                        )
-                        self._optimum_start_active = True
-                        comfort_state = True
+                        max_duration = self.config.max_smart_preconditioning
+                        max_minutes = max_duration.total_seconds() / 60
+                        precondition_minutes = min(max_minutes, precondition_minutes)
+
+                        now = datetime.now(UTC)
+                        if now + timedelta(minutes=precondition_minutes) >= next_start:
+                            label = "Pre-cooling" if self.is_cooling else "Pre-heating"
+                            self.debug_log(
+                                f"Smart Pre-Conditioning: {label} {precondition_minutes:.1f}min early for {next_start}. "
+                                f"(Rate: {conditioning_rate}°C/h, Diff: {diff:.1f}°C)"
+                            )
+                            self._smart_preconditioning_active = True
+                            comfort_state = True
 
         # Person / Proximity Check
         if self.is_person_defined() or self.is_proximity_defined():
             if cached_home_status is None:
                 return None
             if not cached_home_status:
-                return False
+                if self.config.away_behavior != AWAY_BEHAVIOR_IGNORE:
+                    return False
 
             if self.config.persons_force_comfort:
                 start_time_str = self.config.persons_force_comfort_start
@@ -316,18 +333,13 @@ class ScheduleMixin:
                 except (ValueError, TypeError):
                     return True
 
-            if not comfort_state and (sched_uncertain or pres_uncertain):
-                return None
-
             return comfort_state
 
-        if not comfort_state and (sched_uncertain or pres_uncertain):
-            return None
         return comfort_state
 
     # ── HVAC mode ────────────────────────────────────────────────────────────
 
-    def calculate_hvac_mode(self, _set_comfort: bool | None = None) -> str | None:
+    def calculate_hvac_mode(self, _set_comfort: bool | None = None, _manual_override_hvac: str | None = None) -> str | None:
         """Full HVAC-mode chain. Returns ``None`` if data is uncertain."""
         overrides = self.get_calendar_overrides()
         if "hvac" in overrides:
@@ -335,6 +347,12 @@ class ScheduleMixin:
 
         if self.is_frost_protection():
             return self.config.hvac_mode_comfort
+
+        # A3: an open window suppresses the manual override (mirror of
+        # calculate_target_temperature) — the chain below then reaches the
+        # regular window handling. None (uncertain) keeps the override.
+        if _manual_override_hvac is not None and self.is_window_open() is not True:
+            return _manual_override_hvac
 
         idle_temp = self.config.idle_temperature
         if not self.is_automation_active():
@@ -353,17 +371,8 @@ class ScheduleMixin:
         if entry_mode == "off":
             return "off"
 
-        if self.config.off_if_nobody_home:
-            if self.is_person_defined() or self.is_proximity_defined():
-                home_status = self.is_anybody_home_or_proximity()
-                if home_status is None:
-                    return None
-                if not home_status:
-                    set_comfort = _set_comfort if _set_comfort is not None else self.should_set_comfort(entry_mode)
-                    if set_comfort is None:
-                        return None
-                    if not set_comfort:
-                        return "off"
+        if self.config.away_behavior == "off" and self.is_away():
+            return "off"
 
         set_comfort = _set_comfort if _set_comfort is not None else self.should_set_comfort(entry_mode)
         if set_comfort is None:
@@ -387,79 +396,85 @@ class ScheduleMixin:
         """
         return []
 
-    def determine_heating_state(self) -> HeatingState:
-        """Determine the current heating state as an explicit enum value.
+    def determine_heating_state(self) -> ClimateState:
+        """Determine the current climate state as an explicit enum value.
 
-        Mirrors the priority chain of ``calculate_target_temperature`` and
-        ``should_set_comfort`` without duplicating any logic. All existing
-        methods remain unchanged – this method is purely additive.
-
-        Priority (highest wins):
-            FROST_PROTECTION > INACTIVE > WINDOW_OPEN > LIMING > PARTY >
-            FORCE_COMFORT > FORCE_ECO > ADJUSTMENT > SMART_PREHEATING >
-            AWAY > COMFORT/ECO > PAUSED (uncertain)
+        Priority order (highest wins):
+        MANUAL_OVERRIDE >
+        WINDOW_OPEN >
+        LIMING > VACATION > PARTY >
+        FORCE_COMFORT > FORCE_ECO > ADJUSTMENT > SMART_PRECONDITIONING >
+        AWAY > COMFORT > ECO > PAUSED (uncertain)
         """
-        if self.config.manual_override_pause:
-            return HeatingState.MANUAL_OVERRIDE
+        if self.config.manual_override:
+            return ClimateState.MANUAL_OVERRIDE
 
         if self.is_frost_protection():
-            return HeatingState.FROST_PROTECTION
+            return ClimateState.FROST_PROTECTION
 
         if not self.is_automation_active():
-            return HeatingState.INACTIVE
+            return ClimateState.INACTIVE
 
         window_open = self.is_window_open()
         if window_open is None:
-            return HeatingState.PAUSED
+            return ClimateState.PAUSED
         if window_open:
-            return HeatingState.WINDOW_OPEN
+            return ClimateState.WINDOW_OPEN
 
         if self.is_liming_time():
-            return HeatingState.LIMING
+            return ClimateState.LIMING
 
         is_vacation, _ = self.is_vacation_mode()
         if is_vacation:
-            return HeatingState.VACATION
+            return ClimateState.VACATION
 
         is_party, _ = self.check_party_mode()
         if is_party:
-            return HeatingState.PARTY
+            return ClimateState.PARTY
 
         if self.is_force_comfort_temp():
-            return HeatingState.FORCE_COMFORT
+            return ClimateState.FORCE_COMFORT
         if self.is_force_eco_temp():
-            return HeatingState.FORCE_ECO
+            return ClimateState.FORCE_ECO
 
         adj = self.get_active_adjustment()
         mode = self.get_adjustment_mode(adj)
         if mode != "auto":
-            return HeatingState.ADJUSTMENT
+            return ClimateState.ADJUSTMENT
 
-        if self.is_optimum_start_active():
-            return HeatingState.SMART_PREHEATING
+        if self.is_smart_preconditioning_active():
+            return ClimateState.SMART_PRECONDITIONING
 
         set_comfort = self.should_set_comfort(mode)
         if set_comfort is None:
-            return HeatingState.PAUSED
+            return ClimateState.PAUSED
 
         if set_comfort and self.is_away():
-            return HeatingState.AWAY
+            return ClimateState.AWAY
 
-        return HeatingState.COMFORT if set_comfort else HeatingState.ECO
+        return ClimateState.COMFORT if set_comfort else ClimateState.ECO
 
     # ── schedule transition ──────────────────────────────────────────────────
 
     def get_next_schedule_transition(self) -> datetime | None:
-        """Find the next time the active scheduler or calendar will turn ON."""
+        """Find the next phase boundary of the active scheduler or calendar."""
         mode = self.config.scheduling_mode
 
-        entities: list[str] = []
         if mode == SCHEDULING_MODE_CALENDAR:
-            entities = self.config.calendar
-        else:
-            sched_id = self.get_active_scheduler()
-            if sched_id:
-                entities = [sched_id]
+            # A9: compute from fetched, ROOM-FILTERED events. A shared calendar
+            # ENTITY shows whichever event is currently running in its
+            # attributes — possibly another room's — which masks this room's
+            # own phase starts (real case: bedroom override survived its 21:30
+            # slot start because the entity still showed the living-room event
+            # ending 22:00). Returns None before the first successful fetch —
+            # the fingerprint's boot guard then keeps its previous value.
+            transitions = self.get_filtered_calendar_transitions()
+            return min(transitions) if transitions else None
+
+        entities: list[str] = []
+        sched_id = self.get_active_scheduler()
+        if sched_id:
+            entities = [sched_id]
 
         if not entities:
             return None
@@ -471,20 +486,12 @@ class ScheduleMixin:
             if not state:
                 continue
 
-            for attr in ["start_time", "next_event", "next_trigger", "next_occurrence", "next_transition"]:
+            for attr in ["start_time", "end_time", "next_event", "next_trigger", "next_occurrence", "next_transition"]:
                 val = state.attributes.get(attr)
                 if val:
-                    try:
-                        if isinstance(val, str):
-                            dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
-                        else:
-                            dt = val
-                        if isinstance(dt, datetime):
-                            dt = self._ensure_utc(dt)
-                            if dt > datetime.now(UTC):
-                                next_transitions.append(dt)
-                    except (ValueError, TypeError):
-                        pass
+                    dt = self._parse_dt(val)
+                    if dt and dt > datetime.now(UTC):
+                        next_transitions.append(dt)
 
         return min(next_transitions) if next_transitions else None
 
@@ -546,26 +553,35 @@ class ScheduleMixin:
                             events.append(last_changed + close_delta)
 
         # Optimum Start
-        if self.config.optimum_start:
+        if self.config.smart_preconditioning:
             next_start = self.get_next_schedule_transition()
             if next_start:
                 room_temp = self._resolve_room_temp()
                 target_comfort = self.resolve_comfort_temperature()
-                if room_temp is not None and target_comfort is not None and (target_comfort - room_temp) * self._factor > 0:
-                    heat_up_rate = self._get_effective_heating_rate()
-                    preheat_minutes = (abs(target_comfort - room_temp) / heat_up_rate) * 60
+                if room_temp is not None and target_comfort is not None:
+                    needs_precondition = False
+                    if self.is_cooling:
+                        if room_temp > target_comfort:
+                            needs_precondition = True
+                    else:
+                        if room_temp < target_comfort:
+                            needs_precondition = True
 
-                    max_dur = self.config.max_optimum_start
-                    max_mins = max_dur.total_seconds() / 60.0
-                    preheat_minutes = min(max_mins, preheat_minutes)
-                    events.append(next_start - timedelta(minutes=preheat_minutes))
+                    if needs_precondition:
+                        conditioning_rate = self._get_effective_conditioning_rate()
+                        precondition_minutes = (abs(target_comfort - room_temp) / conditioning_rate) * 60
+
+                        max_dur = self.config.max_smart_preconditioning
+                        max_mins = max_dur.total_seconds() / 60.0
+                        precondition_minutes = min(max_mins, precondition_minutes)
+                        events.append(next_start - timedelta(minutes=precondition_minutes))
 
         future_events = [e for e in events if e > now]
         return min(future_events) if future_events else None
 
-    def _get_effective_heating_rate(self) -> float:
-        """Heating rate adjusted by outside temperature (T1 normalization)."""
-        base_rate = self.config.learned_heating_rate
+    def _get_effective_conditioning_rate(self) -> float:
+        """Conditioning rate adjusted by outside temperature (T1 normalization)."""
+        base_rate = self.config.learned_climate_rate
         outside_temp = self._resolve_outside_temp()
 
         if outside_temp is None:

@@ -3,7 +3,7 @@
         "step": {
             "user": {
                 "title": "Willkommen",
-                "description": "Gib dieser Heizungssteuerung einen eindeutigen Namen.",
+                "description": "Gib dieser Klima-Regelung einen eindeutigen Namen.",
                 "data": {
                     "name": "Name der Steuerung"
                 },
@@ -35,7 +35,7 @@
                             "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
                         },
                         "data_description": {
-                            "window_sensors": "Die Heizung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
+                            "window_sensors": "Die Klima-Regelung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
                             "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
                             "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
                             "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
@@ -120,7 +120,7 @@
             },
             "expert_climate_calendar": {
                 "title": "3/6 · Kalender-Einstellungen",
-                "description": "Stelle ein, wie Kalender-Events die Heizung dieses Raums steuern.",
+                "description": "Stelle ein, wie Kalender-Events die Temperatursteuerung dieses Raums steuern.",
                 "data": {
                     "calendar": "Kalender-Entitäten",
                     "calendar_event": "Ereignis-Stichwörter",
@@ -132,7 +132,7 @@
                 },
                 "data_description": {
                     "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
-                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Heizung aus.",
+                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Regelung aus.",
                     "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
                     "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
                     "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben.",
@@ -162,11 +162,11 @@
                             "persons_force_comfort_end": "Übersteuerung Endzeit"
                         },
                         "data_description": {
-                            "persons": "Personen, deren Anwesenheitsstatus die Heizung beeinflusst.",
-                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich die Heizung so, als wäre jemand zu Hause.",
+                            "persons": "Personen, deren Anwesenheitsstatus die Klima-Regelung beeinflusst.",
+                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich das System so, als wäre jemand zu Hause.",
                             "people_entering_duration": "Karenzzeit bevor 'Zuhause angekommen' Comfort auslöst.",
                             "people_leaving_duration": "Karenzzeit bevor 'Haus verlassen' Eco auslöst.",
-                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geheizt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
+                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geregelt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
                             "persons_force_comfort_start": "Startzeit für die Präsenz-Übersteuerung.",
                             "persons_force_comfort_end": "Endzeit für die Präsenz-Übersteuerung."
                         }
@@ -180,7 +180,7 @@
                         },
                         "data_description": {
                             "proximity_entity": "HA Proximity-Integrations-Entität für Geo-Fencing.",
-                            "proximity_distance": "Vorheizen starten wenn eine Person innerhalb dieses Radius ist (Meter).",
+                            "proximity_distance": "Vor-Temperieren starten wenn eine Person innerhalb dieses Radius ist (Meter).",
                             "proximity_duration": "Person muss so lange im Radius sein, bevor ausgelöst wird."
                         }
                     },
@@ -203,12 +203,12 @@
             },
             "expert_behavior": {
                 "title": "5/6 · Verhalten & Regeln",
-                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheits-Offset und manuelle Eingriffe.",
                 "data": {
                     "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
-                    "sec_aggressive_mode": "Aggressives Heizen",
+                    "sec_aggressive_mode": "Aggressiver Betrieb",
                     "sec_adjustments": "Anpassungen (JSON)"
                 },
                 "data_description": {},
@@ -225,54 +225,48 @@
                             "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. EIN = Automatik aktiv, AUS = Automatik inaktiv.",
                             "idle_temperature": "Fallback-Temperatur wenn die Automatik inaktiv ist.",
                             "room_temp_threshold_enabled": "Obere Raumtemperaturgrenze aktivieren.",
-                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
                         }
                     },
                     "sec_temperature_tweaks": {
                         "name": "Zusatz-Verhalten",
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
-                            "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
-                            "off_if_above_room_temp": "Aus wenn Zieltemperatur unter Raumtemperatur",
-                            "ui_change": "Dashboard-Temperaturänderungen verfolgen",
-                            "physical_change": "Physische Drehrad-Änderungen verfolgen"
+                            "off_if_above_room_temp": "Aus wenn Temperatur-Ziel erreicht",
+                            "enable_temporary_manual_override": "Temporären manuellen Modus erlauben"
                         },
                         "data_description": {
                             "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
-                            "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
-                            "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
-                            "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
-                            "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
+                            "off_if_above_room_temp": "Geräte ausschalten, wenn das Temperatur-Ziel im Raum bereits erreicht ist.",
+                            "enable_temporary_manual_override": "Wenn am Thermostat oder in der App eine Temperatur verstellt wird, übersteuert dies den aktuellen Zeitplan bis zum Beginn der nächsten Zeitplan-Phase."
                         }
                     },
                     "sec_away_mode": {
                         "name": "Verhalten bei Abwesenheit",
                         "data": {
-                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
-                            "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
-                            "away_offset": "Abwesenheits-Temperaturabsenkung",
+                            "away_behavior": "Abwesenheits-Verhalten",
+                            "away_offset": "Abwesenheits-Offset",
                             "away_presence_mode": "Abwesenheit: Präsenz nutzen",
                             "away_ignore_people": "Abwesend: Personen ignorieren"
                         },
                         "data_description": {
-                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
-                            "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
-                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
+                            "away_behavior": "Wähle das Verhalten bei Abwesenheit aus.",
+                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit angepasst werden soll. Bei 0 hat der Offset-Modus keinen Temperatureffekt.",
                             "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
                             "away_ignore_people": "Personen-Tracking nicht für Abwesenheits-Entscheidungen verwenden."
                         }
                     },
                     "sec_aggressive_mode": {
-                        "name": "Aggressives Heizen",
+                        "name": "Aggressiver Modus",
                         "data": {
                             "aggressive_mode_selector": "Aggressiver Modus",
                             "aggressive_range": "Erkennungs-Bereich (°C)",
                             "aggressive_offset": "Zusätzlicher Offset (°C)"
                         },
                         "data_description": {
-                            "aggressive_mode_selector": "Heizleistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
-                            "aggressive_range": "Temperaturdifferenz die das aggressive Heizen aktiviert.",
-                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Heizen."
+                            "aggressive_mode_selector": "Leistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
+                            "aggressive_range": "Temperaturdifferenz die den aggressiven Modus aktiviert.",
+                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Modus."
                         }
                     },
                     "sec_adjustments": {
@@ -311,7 +305,7 @@
                             "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
                             "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
                             "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
-                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
                         }
                     },
                     "sec_valve_positioning": {
@@ -392,6 +386,16 @@
     },
     "options": {
         "step": {
+            "user": {
+                "title": "Willkommen",
+                "description": "Gib dieser Klima-Regelung einen eindeutigen Namen.",
+                "data": {
+                    "name": "Name der Steuerung"
+                },
+                "data_description": {
+                    "name": "Beispiel: Wohnzimmer, Büro, Schlafzimmer"
+                }
+            },
             "expert_hardware": {
                 "title": "1/6 · Geräte & Sensoren",
                 "description": "Konfiguriere die physische Hardware in diesem Raum: Thermostate, Temperatursensoren, Fensterkontakte und Außentemperatur-Quelle.",
@@ -416,7 +420,7 @@
                             "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
                         },
                         "data_description": {
-                            "window_sensors": "Die Heizung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
+                            "window_sensors": "Die Klima-Regelung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
                             "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
                             "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
                             "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
@@ -501,7 +505,7 @@
             },
             "expert_climate_calendar": {
                 "title": "3/6 · Kalender-Einstellungen",
-                "description": "Stelle ein, wie Kalender-Events die Heizung dieses Raums steuern.",
+                "description": "Stelle ein, wie Kalender-Events die Temperatursteuerung dieses Raums steuern.",
                 "data": {
                     "calendar": "Kalender-Entitäten",
                     "calendar_event": "Ereignis-Stichwörter",
@@ -513,7 +517,7 @@
                 },
                 "data_description": {
                     "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
-                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Heizung aus.",
+                    "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Regelung aus.",
                     "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
                     "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
                     "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben.",
@@ -543,11 +547,11 @@
                             "persons_force_comfort_end": "Übersteuerung Endzeit"
                         },
                         "data_description": {
-                            "persons": "Personen, deren Anwesenheitsstatus die Heizung beeinflusst.",
-                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich die Heizung so, als wäre jemand zu Hause.",
+                            "persons": "Personen, deren Anwesenheitsstatus die Klima-Regelung beeinflusst.",
+                            "guest_mode": "Wenn eine dieser Entitäten AN ist, verhält sich das System so, als wäre jemand zu Hause.",
                             "people_entering_duration": "Karenzzeit bevor 'Zuhause angekommen' Comfort auslöst.",
                             "people_leaving_duration": "Karenzzeit bevor 'Haus verlassen' Eco auslöst.",
-                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geheizt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
+                            "persons_force_comfort": "Wenn AN, wird immer auf Comfort geregelt sobald jemand zu Hause ist (übersteuert Zeitplan-Eco).",
                             "persons_force_comfort_start": "Startzeit für die Präsenz-Übersteuerung.",
                             "persons_force_comfort_end": "Endzeit für die Präsenz-Übersteuerung."
                         }
@@ -561,7 +565,7 @@
                         },
                         "data_description": {
                             "proximity_entity": "HA Proximity-Integrations-Entität für Geo-Fencing.",
-                            "proximity_distance": "Vorheizen starten wenn eine Person innerhalb dieses Radius ist (Meter).",
+                            "proximity_distance": "Vor-Temperieren starten wenn eine Person innerhalb dieses Radius ist (Meter).",
                             "proximity_duration": "Person muss so lange im Radius sein, bevor ausgelöst wird."
                         }
                     },
@@ -584,12 +588,12 @@
             },
             "expert_behavior": {
                 "title": "5/6 · Verhalten & Regeln",
-                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheitsmodus und manuelle Eingriffe.",
+                "description": "Stelle ein, wie das System auf verschiedene Bedingungen reagiert: Saison-Modus, Temperaturgrenzen, Abwesenheits-Offset und manuelle Eingriffe.",
                 "data": {
                     "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
-                    "sec_aggressive_mode": "Aggressives Heizen",
+                    "sec_aggressive_mode": "Aggressiver Betrieb",
                     "sec_adjustments": "Anpassungen (JSON)"
                 },
                 "data_description": {},
@@ -606,54 +610,48 @@
                             "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. EIN = Automatik aktiv, AUS = Automatik inaktiv.",
                             "idle_temperature": "Fallback-Temperatur wenn die Automatik inaktiv ist.",
                             "room_temp_threshold_enabled": "Obere Raumtemperaturgrenze aktivieren.",
-                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
                         }
                     },
                     "sec_temperature_tweaks": {
                         "name": "Zusatz-Verhalten",
                         "data": {
                             "min_instead_of_off": "Minimum statt AUS verwenden",
-                            "reset_temperature": "Temperatur bei Planwechsel zurücksetzen",
-                            "off_if_above_room_temp": "Aus wenn Zieltemperatur unter Raumtemperatur",
-                            "ui_change": "Dashboard-Temperaturänderungen verfolgen",
-                            "physical_change": "Physische Drehrad-Änderungen verfolgen"
+                            "off_if_above_room_temp": "Aus wenn Temperatur-Ziel erreicht",
+                            "enable_temporary_manual_override": "Temporären manuellen Modus erlauben"
                         },
                         "data_description": {
                             "min_instead_of_off": "TRV nie vollständig ausschalten; stattdessen die Minimum-Einstellung verwenden.",
-                            "reset_temperature": "Manuelle Eingriffe rückgängig machen wenn der nächste Zeitplan-Block beginnt.",
-                            "off_if_above_room_temp": "Heizung ausschalten wenn der Raum schon wärmer als das Ziel ist.",
-                            "ui_change": "Temperaturänderungen über das HA-Dashboard erkennen und merken.",
-                            "physical_change": "Temperaturänderungen am TRV-Drehrad erkennen und merken."
+                            "off_if_above_room_temp": "Geräte ausschalten, wenn das Temperatur-Ziel im Raum bereits erreicht ist.",
+                            "enable_temporary_manual_override": "Wenn am Thermostat oder in der App eine Temperatur verstellt wird, übersteuert dies den aktuellen Zeitplan bis zum Beginn der nächsten Zeitplan-Phase."
                         }
                     },
                     "sec_away_mode": {
                         "name": "Verhalten bei Abwesenheit",
                         "data": {
-                            "off_if_nobody_home": "AUS wenn niemand zu Hause",
-                            "away_scheduler_mode": "Abwesenheit: Zeitplan folgen",
-                            "away_offset": "Abwesenheits-Temperaturabsenkung",
+                            "away_behavior": "Abwesenheits-Verhalten",
+                            "away_offset": "Abwesenheits-Offset",
                             "away_presence_mode": "Abwesenheit: Präsenz nutzen",
                             "away_ignore_people": "Abwesend: Personen ignorieren"
                         },
                         "data_description": {
-                            "off_if_nobody_home": "Heizung komplett ausschalten wenn alle Personen abwesend sind.",
-                            "away_scheduler_mode": "Ermöglicht das Heizen nach Zeitplan, auch wenn niemand zu Hause ist.",
-                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit abgesenkt werden soll. Bei 0 hat der Away-Modus keinen Temperatureffekt.",
+                            "away_behavior": "Wähle das Verhalten bei Abwesenheit aus.",
+                            "away_offset": "Um wie viele Grad die Zieltemperatur bei Abwesenheit angepasst werden soll. Bei 0 hat der Offset-Modus keinen Temperatureffekt.",
                             "away_presence_mode": "Präsenzmelder im Raum können die Absenkung übersteuern.",
                             "away_ignore_people": "Personen-Tracking nicht für Abwesenheits-Entscheidungen verwenden."
                         }
                     },
                     "sec_aggressive_mode": {
-                        "name": "Aggressives Heizen",
+                        "name": "Aggressiver Modus",
                         "data": {
                             "aggressive_mode_selector": "Aggressiver Modus",
                             "aggressive_range": "Erkennungs-Bereich (°C)",
                             "aggressive_offset": "Zusätzlicher Offset (°C)"
                         },
                         "data_description": {
-                            "aggressive_mode_selector": "Heizleistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
-                            "aggressive_range": "Temperaturdifferenz die das aggressive Heizen aktiviert.",
-                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Heizen."
+                            "aggressive_mode_selector": "Leistung erhöhen wenn Temperatur weit vom Ziel entfernt.",
+                            "aggressive_range": "Temperaturdifferenz die den aggressiven Modus aktiviert.",
+                            "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Modus."
                         }
                     },
                     "sec_adjustments": {
@@ -692,14 +690,14 @@
                             "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
                             "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
                             "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
-                            "room_temp_threshold": "Heizung / Klimaanlage stoppen wenn der Raum diese Temperatur erreicht."
+                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
                         }
                     },
                     "sec_valve_positioning": {
                         "name": "Ventilsteuerung (Prozent)",
                         "data": {
                             "valve_mode": "Ventilsteuerung aktivieren",
-                            "valve_diff": "Diff for volle Öffnung",
+                            "valve_diff": "Diff für volle Öffnung",
                             "valve_step": "Ventil-Schrittweite",
                             "valve_max": "Maximale Öffnung",
                             "valve_timeout": "Positions-Timeout",
@@ -709,7 +707,7 @@
                             "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur.",
                             "valve_diff": "Temperaturdifferenz für 100% Ventilöffnung.",
                             "valve_step": "Prozentualer Schritt für jede Ventil-Anpassung.",
-                            "valve_max": "Maximal erlaubtver Ventilöffnungs-Prozentsatz.",
+                            "valve_max": "Maximal erlaubter Ventilöffnungs-Prozentsatz.",
                             "valve_timeout": "Ventilposition nach diesem Timeout zurücksetzen.",
                             "valve_keyword": "Nur Ventile steuern, deren Entitätsname dieses Stichwort enthält."
                         }
@@ -793,13 +791,13 @@
                 "name": "Ziel-Temperatur"
             },
             "external_temperature": {
-                "name": "Externer Raumsensor"
+                "name": "Externer Raumtemperatursensor"
             },
             "outside_temperature": {
                 "name": "Außentemperatur"
             },
             "active_adjustment": {
-                "name": "Aktive Anpassung"
+                "name": "Anpassungen (JSON)"
             },
             "active_scheduler": {
                 "name": "Aktiver Zeitplan"
@@ -838,7 +836,7 @@
                 "name": "Sonnenschein-Offset Wert"
             },
             "away_offset": {
-                "name": "Abwesenheits-Absenkung"
+                "name": "Abwesenheits-Offset"
             },
             "aggressive_range": {
                 "name": "Aggressiver Bereich"
@@ -870,11 +868,11 @@
             "generic_calibration_limit": {
                 "name": "Kalibrierungs-Limit"
             },
-            "max_optimum_start": {
-                "name": "Intelligentes Vorheizen Max. Dauer"
+            "max_smart_preconditioning": {
+                "name": "Smartes Vor-Temperieren (Max. Dauer)"
             },
-            "learned_heating_rate": {
-                "name": "Intelligentes Vorheizen Lernrate (°C/min)"
+            "learned_climate_rate": {
+                "name": "Smartes Vor-Temperieren Lernrate"
             }
         },
         "switch": {
@@ -896,20 +894,23 @@
             "automation_active": {
                 "name": "Automatisierung Aktiv"
             },
-            "manual_override_pause": {
-                "name": "Manuelle Unterbrechung (Pause)"
+            "manual_override": {
+                "name": "Manuelle Steuerung"
             },
-            "optimum_start": {
-                "name": "Intelligentes Vorheizen"
+            "temporary_manual_override": {
+                "name": "Temporäre Manuelle Steuerung"
+            },
+            "smart_preconditioning": {
+                "name": "Smartes Vor-Temperieren"
             },
             "sunshine_offset": {
                 "name": "Sonnenschein-Offset"
             },
             "force_eco_switch": {
-                "name": "Force Eco Temperatur"
+                "name": "Eco-Temperatur erzwingen"
             },
             "force_comfort_switch": {
-                "name": "Force Comfort Temperatur"
+                "name": "Comfort-Temperatur erzwingen"
             }
         },
         "binary_sensor": {
@@ -923,13 +924,13 @@
                 "name": "Fenster offen"
             },
             "away_mode": {
-                "name": "Abwesenheits-Modus"
+                "name": "Abwesenheits-Offset"
             },
             "presence_active": {
                 "name": "Präsenz erkannt"
             },
             "proximity_arrived": {
-                "name": "Näherung erreicht"
+                "name": "Annäherung erkannt"
             }
         }
     },
@@ -991,6 +992,14 @@
                 "fri": "Freitag",
                 "sat": "Samstag",
                 "sun": "Sonntag"
+            }
+        },
+        "away_behavior": {
+            "options": {
+                "offset": "Offset anwenden",
+                "eco": "Eco-Temperatur",
+                "off": "Ausschalten",
+                "ignore": "Abwesenheit ignorieren"
             }
         }
     }

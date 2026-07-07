@@ -52,13 +52,26 @@ class TemperatureMixin:
 
     # ── target temperature chain ─────────────────────────────────────────────
 
-    def calculate_target_temperature(self, _set_comfort: bool | None = None) -> float | None:
+    def calculate_target_temperature(self, _set_comfort: bool | None = None, _manual_override_temp: float | None = None) -> float | None:
         """Full target-temperature chain. Returns ``None`` if data is uncertain."""
         comfort = self.resolve_comfort_temperature()
         eco = self.resolve_eco_temperature()
 
         if self.is_frost_protection():
             return self.config.frost_protection_temp
+
+        # Manual override takes priority over liming protection (is_liming_time is a
+        # maintenance/comfort function, not a safety function like frost protection).
+        # A3: an OPEN WINDOW suppresses the override — heating/cooling against an
+        # open window wastes energy no matter how deliberate the override was.
+        # Suppressed, not cleared: closing the window lets it take effect again.
+        # Window uncertainty (None) keeps the override — unavailable sensors must
+        # not kill a deliberate user input.
+        if _manual_override_temp is not None and self.is_window_open() is not True:
+            return _manual_override_temp
+
+        if self.is_liming_time():
+            return comfort if comfort is not None else 21.0
 
         idle_temp = self.config.idle_temperature
         if not self.is_automation_active():
@@ -101,13 +114,24 @@ class TemperatureMixin:
         target = eff_comfort if set_comfort else eff_eco
 
         if set_comfort and self.is_away():
-            away_offset = self.config.away_offset
-            target = eff_comfort - away_offset
+            behavior = self.config.away_behavior
+            if behavior == "eco":
+                target = eff_eco
+            elif behavior == "offset":
+                away_offset = self.config.away_offset
+                if self.is_cooling:
+                    target = eff_comfort + away_offset  # Energiesparen: wärmer werden lassen
+                else:
+                    target = eff_comfort - away_offset  # Energiesparen: kälter werden lassen
 
         # Sunshine Offset – only in comfort mode, only when sunny
         if set_comfort and self.is_sunshine_offset_active():
             offset = self.config.sunshine_offset_value
-            target -= offset
-            self.debug_log(f"Sunshine Offset: target -{offset}°C")
+            if self.is_cooling:
+                target += offset
+                self.debug_log(f"Sunshine Offset: target +{offset}°C (Kühlen)")
+            else:
+                target -= offset
+                self.debug_log(f"Sunshine Offset: target -{offset}°C (Heizen)")
 
         return target

@@ -142,7 +142,7 @@ async def async_get_config_entry_diagnostics(
             "is_liming_active": engine.is_liming_time(),
             "force_comfort": engine.is_force_comfort_temp(),
             "force_eco": engine.is_force_eco_temp(),
-            "is_optimum_start_active": engine.is_optimum_start_active(),
+            "is_smart_preconditioning_active": engine.is_smart_preconditioning_active(),
             "is_sunshine_offset_active": engine.is_sunshine_offset_active(),
             "sunshine_offset": engine.get_sunshine_offset(),
             "uncertainty_reasons": engine.get_uncertainty_reasons(),

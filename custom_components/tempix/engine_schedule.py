@@ -364,7 +364,16 @@ class ScheduleMixin:
 
         window_temp = self.resolve_window_open_temperature()
         if window_open_status and window_temp == 0 and not (self.is_force_comfort_temp() or self.is_liming_time()):
-            return self.config.hvac_mode_comfort
+            # window_open_temp == 0 means "turn the device off" (config: 0 = TRV aus).
+            # Mirror calculate_target_temperature: only keep the device running if a
+            # frost floor applies (target then becomes frost_min > 0 and we must
+            # actively drive to it). Returning comfort mode unconditionally made
+            # calculate_changes clamp the 0-target up to the device minimum and
+            # heat/cool AGAINST the open window — worst in cooling mode, where the
+            # AC ran at its 16 °C minimum with the window wide open.
+            if self.config.frost_protection_enabled:
+                return self.config.hvac_mode_comfort
+            return "off"
 
         adj = self.get_active_adjustment()
         entry_mode = self.get_adjustment_mode(adj)

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.7] - 2026-07-09
+
+### 🐛 Bug Fixes
+- **Klimagerät kühlte/heizte bei offenem Fenster gegen die Untergrenze statt auszugehen:** War die Fenster-Offen-Temperatur auf `0` konfiguriert (= "Gerät aus"), berechnete die Engine trotzdem den Komfort-Modus. Das dabei entstehende 0-Ziel wurde anschließend auf das Geräteminimum hochgeklemmt — im Ergebnis lief z. B. die Klimaanlage bei weit geöffnetem Fenster aktiv auf 16 °C. Bei `window_open_temp = 0` schaltet das Gerät jetzt korrekt ab (Ausnahme: aktiver Frostschutz hält im Heizbetrieb die Frost-Mindesttemperatur).
+
 ## [1.6.6] - 2026-07-07
 
 ### 🐛 Bug Fixes

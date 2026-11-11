@@ -51,11 +51,8 @@ Starte Home Assistant neu.
 ### Schritt 3: Integration hinzufügen
 
 1. Öffne **Einstellungen → Geräte & Dienste**
-
 2. Klicke **+ Integration hinzufügen**
-
 3. Suche nach **"Tempix"**
-
 4. Folge dem **Expert Mode** (6 fokussierte Schritte)
 
 ### Schritt 4: Grundkonfiguration
@@ -64,19 +61,14 @@ In den sechs Expert-Schritten legst du die Basis:
 
 - **1/6 Geräte & Sensoren:**<br>
   Thermostate, Raumsensoren und Fensterkontakte auswählen.
-
 - **2/6 Klima & Zeitplan:**<br>
   Comfort- & Eco-Temperaturen festlegen, Zeitplanmethode wählen und JSON-Anpassungs-Mappings konfigurieren.
-
 - **3/6 Kalender Oder Zeitpläne:**<br>
   Kalender konfigurieren oder Helfer auswählen (je nach Schritt 2).
-
 - **4/6 Anwesenheit & Personen:**<br>
   Wer beeinflusst die Heizung? (Inkl. Gästemodus).
-
 - **5/6 Verhalten & Regeln:**<br>
   Saison Modus und Detail-Regeln (Absenkung bei Abwesenheit, Manuelle Eingriffe).
-
 - **6/6 Erweitert & Schutz:**<br>
   Ventilsteuerung, Frost- und Kalkschutz.
 
@@ -95,10 +87,8 @@ Das virtuelle Thermostat ist das Gehirn deiner Heizung. Es bündelt alle physisc
 
 - **Zentrale Steuerung:**<br>
   Du musst nicht mehr jedes Thermostat einzeln einstellen. Eine Änderung am virtuellen Thermostat wird sofort an alle Heizkörper im Raum verteilt.
-
 - **Intelligente Korrektur:**<br>
   Tempix berechnet im Hintergrund ständig Offsets und Kalibrierungen. Das virtuelle Thermostat zeigt dir immer die „wahre“ Zieltemperatur an, die du erreichen möchtest, während die echten Thermostate am Heizkörper oft leicht abweichende Werte erhalten, um Energieverluste oder Sensorfehler auszugleichen.
-
 - **Status auf einen Blick:**<br>
   Es zeigt dir nicht nur die Temperatur, sondern in den Attributen auch den Grund (z.B. „Fenster offen“ oder „Party-Modus“), warum gerade eine bestimmte Temperatur gesetzt ist.
 
@@ -163,9 +153,7 @@ Wenn du feste Heizzeiten hast (z.B. morgens und abends Comfort).
 **So nutzt du es:**
 
 1. Erstelle einen **Schedule Helper** unter Einstellungen → Helfer
-
 2. Definiere ON-Zeiten = Comfort, OFF-Zeiten = Eco
-
 3. Wähle diesen Schedule in der Tempix-Konfiguration
 
 > [!TIP]
@@ -300,13 +288,9 @@ Du hast einen Kalender-Eintrag "Homeoffice" von 08:00–17:00.
 **So nutzt du es:**
 
 1. In der Konfiguration: Scheduling Mode → "Kalender"
-
 2. Kalender-Entity auswählen.
-
 3. Event-Stichwort eingeben (z.B. "Homeoffice").
-
 4. **Ort-Filter (optional):** Filtert nach dem "Ort"-Feld im Kalender-Event.
-
 5. **Deep Scan (Agenda):** Tempix ruft proaktiv deine Kalender-Agenda ab. So wird auch bei seltenen Abfragen sichergestellt, dass kein Termin (z.B. bei einem Neustart um Mitternacht) übersehen wird.
 
 ### 💡 Profi-Befehle im Kalender
@@ -457,11 +441,9 @@ Wenn du tagsüber arbeitest oder unregelmäßig unterwegs bist.
 **So nutzt du es:**
 
 1. **Personen & Geräte** auswählen (z.B. `person.martin` oder Tracker)
-
 2. **Abwesenheits-Offset** einstellen — in der Konfiguration unter **5/6 Verhalten & Regeln**, nicht im
    Dashboard (z.B. 2 °C Absenkung). Wirksam wird er nur, wenn **Verhalten bei Abwesenheit** auf
    *Temperatur absenken (Offset)* steht.
-
 3. Optional: **Näherungs-Sensor** (Schritt **4/6 Anwesenheit & Personen**, Bereich *Näherung & Geo-Fencing*) –
    ein Gerät der HA-Integration *Proximity*. Ist jemand auf dem Heimweg, kann Tempix schon vor der Ankunft
    aufheizen. Der **Aktivierungs-Radius** legt die Distanz fest (Standard 500 m); mit der
@@ -473,7 +455,6 @@ Tempix zeigt dir im Status-Sensor direkt an, was gerade passiert:
 
 - **Eco:**<br>
   Normaler Sparbetrieb (auch wenn du abwesend bist).
-
 - **Away (🚶 -2.0°C):**<br>
   Du bist abwesend, aber der Zeitplan ist aktiv — der Away-Offset wird vom Comfort-Sollwert abgezogen. Bei Away-Verhalten „Eco“ steht `Away (🚶 Eco)`, die Zieltemperatur ist dann die Eco-Temperatur.
 
@@ -609,7 +590,6 @@ Saison-Modus an, Temperatur fällt unter 5.0 °C → Tempix heizt automatisch au
 **So nutzt du es:**
 
 1. In der Konfiguration den **Frostschutz** aktivieren.
-
 2. **Frostschutz-Temperatur** festlegen (Standard: 5 °C).
 
 ---
@@ -678,10 +658,8 @@ Wenn die Raumtemperatur sehr weit vom Ziel entfernt ist (z.B. nach dem Lüften o
 
 1. **In der Konfiguration:**<br>
    **Aggressiver Modus** wählen.
-
 2. **Reichweite:**<br>
    Ab wie vielen Grad Differenz (z.B. 2 °C) soll der Modus starten?
-
 3. **Offset:**<br>
    Wie viele Grad (z.B. 1 °C) soll zusätzlich zum Ziel geheizt werden?
 
@@ -756,12 +734,9 @@ Wenn es morgens oder zum Feierabend pünktlich warm sein soll, ohne dass die Hei
 **So nutzt du es:**
 
 1. In den Einstellungen **Smart Pre-Conditioning** aktivieren.
-
 2. **Max. Vorlaufzeit:** Legt fest, wie viele Stunden Tempix maximal früher anfangen darf zu heizen (Standard: 2h).
-
 3. **Wichtig:**<br>
    Ist das Feature **AUS**, startet die Heizung exakt zum Zeitpunkt des Kalender-Events/Zeitplans (0 Minuten Vorlauf).
-
 4. **Fallback:**<br>
    Ist das Feature **AN**, aber es liegen noch keine gelernten Daten vor, nutzt Tempix einen Standardwert von **1,0 °C pro Stunde** (begrenzt durch deine maximale Vorlaufzeit).
 
@@ -797,13 +772,10 @@ Tempix erkennt das sofort! Durch das smarte **Echo-Tracking** passiert folgendes
 
 - **Temporäre Manuelle Steuerung:**<br>
   Tempix wechselt automatisch in den Status *Temporäre Manuelle Steuerung*. Die Automatisierung pausiert für diesen Raum und überlässt dir die volle Kontrolle. Die Temperatur wird **nicht** mehr starr auf den Zeitplan zurückgezwungen. (Nicht zu verwechseln mit dem Schalter **Manueller Modus**, der kompletten Pause, siehe unten.)
-
 - **Option ausgeschaltet:**<br>
   Ist in den Raum-Optionen **„Temporären manuellen Modus erlauben"** aus, übernimmt Tempix eine Änderung an der Karte oder am Schalter *Temporäre Manuelle Steuerung* nicht. Du bekommst dann die Meldung *„Der temporäre manuelle Modus ist für … deaktiviert. Aktiviere zuerst ‚Temporären manuellen Modus erlauben' in den Optionen."* Im **Manuellen Modus** gehen Änderungen an der Karte trotzdem direkt ans Gerät.
-
 - **Nur die Temperatur verstellt, während der Raum aus ist:**<br>
   Hat die Automatik den Raum gerade aus (z. B. Eco-Modus „Aus" bei einer Klimaanlage) und du verstellst auf der Karte **nur die Temperatur**, bleibt das Gerät aus. Tempix merkt sich den Wert und zeigt ihn an; er gilt, sobald du auf der Karte den Modus einschaltest (z. B. „Kühlen"). Willst du sofort einschalten, wähle den Modus mit. Beim nächsten Zeitplanwechsel verfällt der gemerkte Wert wie jeder Override.
-
 - **Auto-Resume (Auto-Reset):**<br>
   Sobald sich die Zeitplan-Lage logisch ändert, beendet Tempix die temporäre Steuerung automatisch und übernimmt wieder das Ruder. Das passiert, wenn die nächste reguläre Phase beginnt (z.B. der geplante Wechsel von "Eco" auf "Comfort"), wenn ein anderer Zeitplan aktiv wird, wenn eine Anpassungs-Regel greift oder wegfällt — **und auch, wenn dein Abwesenheits-Status kippt** (jemand kommt heim, oder der Letzte geht). Spätestens nach 24 Stunden endet die temporäre Steuerung in jedem Fall. Du kannst sie auch jederzeit manuell über den Schalter **Temporäre Manuelle Steuerung** beenden — oder umgekehrt **einschalten**, um deine gerade angezeigte Solltemperatur sofort als Override "einzufrieren", ganz ohne ans Thermostat zu fassen.
 
@@ -829,7 +801,6 @@ Tempix erkennt das sofort! Durch das smarte **Echo-Tracking** passiert folgendes
 Du kannst im Dashboard zwei spezielle Schalter nutzen, um die Automatik sofort zu überschreiben:
 
 1. **Comfort-Temperatur erzwingen** (🔥): Setzt die Heizung sofort und dauerhaft auf **Comfort**.
-
 2. **Eco-Temperatur erzwingen** (🍃): Setzt die Heizung sofort und dauerhaft auf **Eco**.
 *Hinweis:* Solange einer dieser Schalter aktiv ist, pausiert der Zeitplan vollständig in diesem Raum.
 
@@ -843,7 +814,6 @@ Es gibt zwei Wege:
 
 1. **Saison Modus:**<br>
    Verknüpfe einen Schalter (z.B. `input_boolean.heizperiode`). Ist dieser AUS, regelt Tempix nicht mehr nach Zeitplan: Die Heizung geht aus (oder auf die **Ruhetemperatur**, falls eine eingestellt ist). Nur der Frostschutz-Notfall greift weiter.
-
 2. **Außentemperatur:**<br>
    Tempix kann die Heizung automatisch deaktivieren, wenn es draußen warm genug ist (z.B. > 17 °C).
 
@@ -1113,9 +1083,7 @@ Wenn etwas nicht so funktioniert wie geplant und du Hilfe im Forum oder auf GitH
 **So erstellst du einen Diagnose-Export:**
 
 1. Gehe zu **Einstellungen → Geräte & Dienste**.
-
 2. Suche nach der **Tempix** Karte.
-
 3. Klicke auf die drei Punkte (`⋮`) und wähle **Diagnose herunterladen**.
 
 Die heruntergeladene Datei enthält alle technischen Details deiner Konfiguration und den aktuellen Zustand deiner Heizung (anonymisiert), was die Fehlersuche massiv beschleunigt.

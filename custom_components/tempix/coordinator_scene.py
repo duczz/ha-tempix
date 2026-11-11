@@ -1,7 +1,7 @@
 """
 Tempix – Scene Manager.
 
-Saves and restores TRV states for window-open and party-mode scenarios.
+Saves and restores TRV states for the window-open scenario (discarded when a party ends).
 """
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+from .store_migration import MigratingStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ _STORAGE_VERSION = 1
 
 
 class SceneManager:
-    """Persists and restores TRV scenes (window open / party mode)."""
+    """Persists and restores TRV scenes (window open; discarded when a party ends)."""
 
     def __init__(
         self,
@@ -33,7 +34,11 @@ class SceneManager:
         self._action_delay_secs = action_delay_secs
         self._name = name
         self._scenes: dict[str, dict] = {}
-        self._store = Store(hass, _STORAGE_VERSION, f"tempix.scenes.{entry_id}")
+        self._store = MigratingStore(
+            Store(hass, _STORAGE_VERSION, f"tempix/scenes_{entry_id}"),
+            Store(hass, _STORAGE_VERSION, f"tempix.scenes.{entry_id}"),
+            name,
+        )
 
     async def async_load(self) -> None:
         """Load previously persisted scenes from storage."""

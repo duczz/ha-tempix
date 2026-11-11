@@ -2,7 +2,8 @@
 
 All configuration values are parsed exactly once at construction time.
 Duration dicts become ``timedelta``, numeric strings become ``float``,
-entity references become ``list[str]``.
+multi-entity fields (``trvs``, ``persons``, ``window_sensors`` …) become
+``list[str]``.
 """
 from __future__ import annotations
 
@@ -12,7 +13,10 @@ from dataclasses import dataclass, field, fields
 from datetime import timedelta
 from typing import Any
 
-from custom_components.tempix.const import MIN_CALENDAR_SCAN_INTERVAL, MAX_CALENDAR_SCAN_INTERVAL
+from custom_components.tempix.const import (
+    MIN_CALENDAR_SCAN_INTERVAL,
+    MAX_CALENDAR_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +51,32 @@ def _parse_entity_list(value: Any) -> list[str]:
     return []
 
 
+VALVE_MODES = ("off", "regular", "pessimistic", "optimistic")
+
+
+def parse_valve_mode(value: Any) -> str:
+    """Normalise ``valve_mode`` to one of :data:`VALVE_MODES`.
+
+    History: the config flow rendered this as a ``BooleanSelector``
+    while every gate in the code compares against the STRING ``"off"``. A
+    switched-off toggle stored ``False``, and ``False != "off"`` is true — so
+    valve positioning ran for everyone who ever saved the expert step, against
+    their setting. Diagnosed from a live diagnostics dump (``valve_mode: false``
+    with the toggle visibly off); surfaced by the V2 parallel validation.
+
+    The selector is a dropdown again (as in the original blueprint's
+    ``input_valve_positioning_mode``), so anything but a known mode is coerced:
+    legacy ``True`` → ``"regular"`` (the linear curve it silently used),
+    ``False``/unknown → ``"off"`` (fail safe — never enable a hardware writer
+    from an unparseable value).
+    """
+    if isinstance(value, bool):
+        return "regular" if value else "off"
+    if isinstance(value, str) and value in VALVE_MODES:
+        return value
+    return "off"
+
+
 def _parse_adjustments(value: Any) -> list[dict]:
     """Parse adjustments from JSON string or list."""
     if not value or value == "[]":
@@ -59,6 +89,40 @@ def _parse_adjustments(value: Any) -> list[dict]:
     if isinstance(value, list):
         return value
     return []
+
+
+def validate_adjustments(value: Any) -> bool:
+    """True, wenn ``value`` ein nutzbares Adjustments-JSON ist (Flow-Validierung).
+
+    ``_parse_adjustments`` verschluckt kaputtes JSON still und liefert ``[]`` —
+    die Anpassungen wirken dann nicht, ohne jede Logzeile. Der Flow prueft
+    deshalb vorher: leer/``[]`` ist gueltig, sonst muss es eine JSON-Liste aus
+    Objekten sein, deren ``time`` (falls vorhanden) ein String ist
+    (``get_active_adjustment`` vergleicht ``e["time"] <= "HH:MM"``; ein
+    Nicht-Dict oder eine Zahl liesse die Engine mit ``TypeError`` fallen).
+    """
+    if value is None or value == "" or value == "[]":
+        return True
+    data = value
+    if isinstance(value, str):
+        try:
+            data = json.loads(value)
+        except (json.JSONDecodeError, TypeError):
+            return False
+    if not isinstance(data, list):
+        return False
+    for entry in data:
+        if not isinstance(entry, dict):
+            return False
+        if "time" in entry and not isinstance(entry["time"], str):
+            return False
+    # Dieselbe Pruefung wie das Repair `config_adjustments`: vorher liess der
+    # Flow `"9:00"` (oder einen Eintrag ohne `time`) durch, der danach nie
+    # wirkte (String-Vergleich), und erst das Repair beanstandete ihn
+    # (Live-Test 2026-11-04, F7). Flow und Repair muessen sich einig sein.
+    from .config_validation import _adjustment_problems
+
+    return not _adjustment_problems(data)
 
 
 # ── dataclass ─────────────────────────────────────────────────────────────────
@@ -81,7 +145,7 @@ class TempixConfig:
     outside_temp_sensor: str | None = None
     outside_temp_threshold: float = 15.0
     outside_temp_hysteresis: float = 1.0
-    outside_temp_fallback: bool = False
+    outside_temp_fallback: bool = True
     weather_entity: str | None = None
     room_temp_threshold_enabled: bool = False
     room_temp_threshold: float = 18.0
@@ -120,7 +184,6 @@ class TempixConfig:
 
     # ── Adjustments & Overrides ──────────────────────────────────────────
     adjustments: list[dict] = field(default_factory=list)
-    sync_adjustments: bool = False
     force_comfort_switch: bool = False
     force_eco_switch: bool = False
     enable_temporary_manual_override: bool = True
@@ -169,9 +232,6 @@ class TempixConfig:
     # ── Frost Protection ─────────────────────────────────────────────────
     frost_protection_enabled: bool = False
     frost_protection_temp: float = 5.0
-    frost_protection_duration: timedelta = field(
-        default_factory=lambda: timedelta(days=1)
-    )
 
     # ── Liming Protection ────────────────────────────────────────────────
     liming_protection: bool = False
@@ -183,7 +243,7 @@ class TempixConfig:
     # ── Season / Automation ──────────────────────────────────────────────
     season_mode_entity: str | None = None
     automation_active: bool = True
-    manual_override: bool = False
+    manual_mode: bool = False
     idle_temperature: float = 0.0
 
     # ── Valve Positioning ────────────────────────────────────────────────
@@ -191,9 +251,7 @@ class TempixConfig:
     valve_diff: float = 1.0
     valve_step: int = 10
     valve_max: int = 100
-    valve_timeout: timedelta = field(
-        default_factory=lambda: timedelta(minutes=20)
-    )
+    valve_min: int = 0
     valve_keyword: str = "valve"
 
     # ── Custom Settings ──────────────────────────────────────────────────
@@ -211,7 +269,6 @@ class TempixConfig:
     sunshine_offset: bool = False
     sunshine_offset_value: float = 1.0
     learned_climate_rate: float = 1.0
-    climate_rate_lookback: int = 5
     max_smart_preconditioning: timedelta = field(
         default_factory=lambda: timedelta(hours=2)
     )
@@ -219,13 +276,14 @@ class TempixConfig:
     # ── Holiday ──────────────────────────────────────────────────────────
     holiday_calendar: str | None = None
     holiday_use_day: str | None = None
+    vacation_home: bool = False
+    vacation_home_use_day: str | None = None
 
     # ── Calendar ─────────────────────────────────────────────────────────
     calendar: list[str] = field(default_factory=list)
     calendar_event: str = ""
     calendar_room: str = ""
     calendar_scan_interval: int = 15
-    sync_calendar_with_entities: bool = False
 
     # ── Internal (not a config key – stores raw dict for reload comparison) ──
     _raw: dict[str, Any] = field(default_factory=dict, repr=False, compare=False)
@@ -253,7 +311,7 @@ class TempixConfig:
             outside_temp_sensor=g("outside_temp_sensor"),
             outside_temp_threshold=float(g("outside_temp_threshold", 15.0)),
             outside_temp_hysteresis=float(g("outside_temp_hysteresis", 1.0)),
-            outside_temp_fallback=bool(g("outside_temp_fallback", False)),
+            outside_temp_fallback=bool(g("outside_temp_fallback", True)),
             room_temp_threshold_enabled=bool(g("room_temp_threshold_enabled", False)),
             room_temp_threshold=float(g("room_temp_threshold", 18.0)),
             # Comfort / Eco
@@ -268,7 +326,9 @@ class TempixConfig:
             # Persons & Guest
             persons=_parse_entity_list(g("persons")),
             people_entering_duration=parse_duration(g("people_entering_duration")),
-            people_leaving_duration=parse_duration(g("people_leaving_duration")),
+            people_leaving_duration=parse_duration(
+                g("people_leaving_duration"), default_seconds=600
+            ),
             persons_force_comfort=bool(g("persons_force_comfort", False)),
             persons_force_comfort_start=g("persons_force_comfort_start", "07:00:00"),
             persons_force_comfort_end=g("persons_force_comfort_end", "22:00:00"),
@@ -285,7 +345,6 @@ class TempixConfig:
             presence_reaction_off=parse_duration(g("presence_reaction_off")),
             # Adjustments
             adjustments=_parse_adjustments(g("adjustments")),
-            sync_adjustments=bool(g("sync_adjustments", False)),
             force_comfort_switch=bool(g("force_comfort_switch", False)),
             force_eco_switch=bool(g("force_eco_switch", False)),
             enable_temporary_manual_override=bool(g("enable_temporary_manual_override", True)),
@@ -300,7 +359,11 @@ class TempixConfig:
             # Temperature Tweaks
             min_instead_of_off=bool(g("min_instead_of_off", False)),
             off_if_above_room_temp=bool(g("off_if_above_room_temp", False)),
-            hysteresis=float(g("hysteresis", 0.3)),
+            # Harter Boden bei 0.1, auch fuer Bestandskonfigurationen
+            # von vor dem Selektor-Minimum — bei hysteresis=0 kollabiert das
+            # Ein-/Aus-Band auf einen Punkt und der Regler oszilliert bei
+            # ref_temp == target garantiert jeden Zyklus.
+            hysteresis=max(0.1, float(g("hysteresis", 0.3))),
             # Away
             away_offset=float(g("away_offset", 0.0)),
             away_presence_mode=bool(g("away_presence_mode", False)),
@@ -332,9 +395,8 @@ class TempixConfig:
             # Frost
             frost_protection_enabled=bool(g("frost_protection_enabled", False)),
             frost_protection_temp=float(g("frost_protection_temp", 5.0)),
-            frost_protection_duration=parse_duration(
-                g("frost_protection_duration", {"days": 1})
-            ),
+            # frost_protection_duration wurde entfernt. Ein in
+            # Alt-Configs gespeicherter Wert wird hier schlicht nicht mehr gelesen.
             # Liming
             liming_protection=bool(g("liming_protection", False)),
             liming_day=g("liming_day", "mon"),
@@ -344,16 +406,16 @@ class TempixConfig:
             # Season / Automation
             season_mode_entity=g("season_mode_entity"),
             automation_active=bool(g("automation_active", True)),
-            manual_override=bool(g("manual_override", False)),
+            manual_mode=bool(g("manual_mode", False)),
             idle_temperature=float(g("idle_temperature", 0.0)),
             # Valve
-            valve_mode=g("valve_mode", "off"),
+            valve_mode=parse_valve_mode(g("valve_mode", "off")),
             valve_diff=float(g("valve_diff", 1.0) or 1.0),
             valve_step=int(g("valve_step", 10) or 10),
-            valve_max=int(g("valve_max", 100) or 100),
-            valve_timeout=parse_duration(
-                g("valve_timeout", {"hours": 0, "minutes": 20, "seconds": 0})
-            ),
+            valve_max=int(_v) if (_v := g("valve_max", 100)) is not None else 100,
+            # Absent key (every entry from before the option) / None -> 0,
+            # i.e. no minimum. Clamped to a percentage.
+            valve_min=max(0, min(100, int(float(g("valve_min", 0) or 0)))),
             valve_keyword=g("valve_keyword", "valve"),
             # Custom
             action_delay=parse_duration(
@@ -370,27 +432,25 @@ class TempixConfig:
             sunshine_offset=bool(g("sunshine_offset", False)),
             sunshine_offset_value=float(g("sunshine_offset_value", 1.0)),
             learned_climate_rate=float(g("learned_climate_rate", 1.0)),
-            climate_rate_lookback=int(g("climate_rate_lookback", 5)),
             max_smart_preconditioning=parse_duration(
                 g("max_smart_preconditioning", {"hours": 2, "minutes": 0, "seconds": 0})
             ),
             # Holiday
             holiday_calendar=g("holiday_calendar"),
             holiday_use_day=g("holiday_use_day"),
+            vacation_home=bool(g("vacation_home", False)),
+            vacation_home_use_day=g("vacation_home_use_day"),
             # Calendar
             calendar=_parse_entity_list(g("calendar")),
             calendar_event=g("calendar_event", ""),
             calendar_room=g("calendar_room", ""),
             calendar_scan_interval=max(MIN_CALENDAR_SCAN_INTERVAL, min(int(g("calendar_scan_interval", 15)), MAX_CALENDAR_SCAN_INTERVAL)),
-            sync_calendar_with_entities=bool(
-                g("sync_calendar_with_entities", False)
-            ),
             # Internal
             _raw=dict(raw),
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialise to a plain dict (for diagnostics / comparison)."""
+        """Serialise to a plain dict (for diagnostics)."""
         result: dict[str, Any] = {}
         for f in fields(self):
             if f.name.startswith("_"):

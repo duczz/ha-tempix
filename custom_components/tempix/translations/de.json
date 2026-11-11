@@ -31,15 +31,13 @@
                             "window_sensors": "Fenster- & Tür-Sensoren",
                             "window_reaction_open": "Verzögerung – Fenster öffnet",
                             "window_reaction_close": "Verzögerung – Fenster schließt",
-                            "window_open_temp": "Lüftungs-Temperatur",
-                            "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
+                            "window_open_temp": "Fenster-offen-Temperatur"
                         },
                         "data_description": {
                             "window_sensors": "Die Klima-Regelung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
                             "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
                             "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
-                            "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
-                            "window_legacy_restore": "Falls aktiviert, wird die Temperatur auf den Wert vor der Lüftung zurückgesetzt."
+                            "window_open_temp": "Temperatur, die bei offenem Fenster oder offener Tür gesetzt wird (0.0 = AUS)."
                         }
                     },
                     "sec_outside": {
@@ -54,7 +52,7 @@
                         "data_description": {
                             "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
                             "outside_temp_threshold": "Die Klimasteuerung wird deaktiviert, wenn die Außentemperatur diesen Wert über- (Heizen) bzw. unterschreitet (Kühlen).",
-                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Klimasteuerung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
+                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel bei Schwelle 17 °C und Hysterese 1 °C: Abschalten bei 18 °C (Heizen) bzw. 16 °C (Kühlen), Wiedereinschalten bei 16 °C (Heizen) bzw. 18 °C (Kühlen).",
                             "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
                             "weather_entity": "Optionale Wetter-Entität für den Sonnenschein-Offset. Bei sonnigem Wetter (`sunny`) wird die Zieltemperatur um den Sonnenschein-Offset-Wert reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
                         }
@@ -67,6 +65,7 @@
                 "data": {
                     "sec_temperatures": "Temperaturen",
                     "sec_scheduling": "Zeitplan & Steuerung",
+                    "sec_adjustments": "Anpassungen (JSON)",
                     "sec_calibration": "Kalibrierungs-Einstellungen"
                 },
                 "data_description": {},
@@ -95,6 +94,15 @@
                         },
                         "data_description": {
                             "scheduling_mode": "Wähle 'Helfer' für Zeitplan-Entitäten oder 'Kalender' für kalenderbasierte Steuerung."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Anpassungen (JSON)",
+                        "data": {
+                            "adjustments": "Anpassungs-Mapping (JSON)"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen."
                         }
                     },
                     "sec_calibration": {
@@ -126,18 +134,18 @@
                     "calendar_event": "Ereignis-Stichwörter",
                     "calendar_room": "Standort-Filter",
                     "calendar_scan_interval": "Abfrage-Intervall",
-                    "sync_calendar_with_entities": "Mit Helfern synchronisieren",
                     "holiday_calendar": "Feiertags-Kalender",
-                    "holiday_use_day": "Feiertags-Wochentag"
+                    "holiday_use_day": "Feiertags-Wochentag",
+                    "vacation_home_use_day": "Feiertags-Wochentag (Urlaub Zuhause)"
                 },
                 "data_description": {
                     "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
                     "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Regelung aus.",
                     "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
                     "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
-                    "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben.",
                     "holiday_calendar": "Optional: ein calendar.holiday_*-Kalender der HA Feiertags-Integration. Ist heute ein Feiertag, wird stattdessen der Zeitplan des gewählten Wochentags verwendet.",
-                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll."
+                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll.",
+                    "vacation_home_use_day": "Überschreibt „Feiertags-Wochentag“, solange der Schalter „Urlaub Zuhause“ aktiv ist. Bleibt das Feld leer, gilt weiterhin „Feiertags-Wochentag“."
                 }
             },
             "expert_presence": {
@@ -208,8 +216,7 @@
                     "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
-                    "sec_aggressive_mode": "Aggressiver Betrieb",
-                    "sec_adjustments": "Anpassungen (JSON)"
+                    "sec_aggressive_mode": "Aggressiver Betrieb"
                 },
                 "data_description": {},
                 "sections": {
@@ -268,17 +275,6 @@
                             "aggressive_range": "Temperaturdifferenz die den aggressiven Modus aktiviert.",
                             "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Modus."
                         }
-                    },
-                    "sec_adjustments": {
-                        "name": "Anpassungen (JSON)",
-                        "data": {
-                            "adjustments": "Anpassungs-Mapping (JSON)",
-                            "sync_adjustments": "Anpassungen (JSON) synchronisieren"
-                        },
-                        "data_description": {
-                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen.",
-                            "sync_adjustments": "Berechnete Anpassungen zurück in Helfer-Entitäten schreiben."
-                        }
                     }
                 }
             },
@@ -286,44 +282,28 @@
                 "title": "6/6 · Erweitert & Schutz",
                 "description": "Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
                 "data": {
-                    "sec_season_mode": "Saison Modus",
-                    "sec_valve_positioning": "Ventilsteuerung (Prozent)",
+                    "sec_valve_positioning": "Ventilsteuerung",
                     "sec_protection": "Schutzfunktionen (Frost & Kalk)",
                     "sec_timing": "System-Timing"
                 },
                 "data_description": {},
                 "sections": {
-                    "sec_season_mode": {
-                        "name": "Saison Modus",
-                        "data": {
-                            "season_mode_entity": "Saison-Helfer",
-                            "idle_temperature": "Leerlauf-Temperatur",
-                            "room_temp_threshold_enabled": "Raumtemp-Schwelle aktivieren",
-                            "room_temp_threshold": "Max. Raumtemperatur"
-                        },
-                        "data_description": {
-                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
-                            "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
-                            "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
-                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
-                        }
-                    },
                     "sec_valve_positioning": {
-                        "name": "Ventilsteuerung (Prozent)",
+                        "name": "Ventilsteuerung",
                         "data": {
-                            "valve_mode": "Ventilsteuerung aktivieren",
-                            "valve_diff": "Diff für volle Öffnung",
+                            "valve_mode": "Ventilsteuerung / Kennlinie",
+                            "valve_diff": "Temperaturdifferenz für volle Öffnung",
                             "valve_step": "Ventil-Schrittweite",
+                            "valve_min": "Mindestöffnung (Schließpunkt)",
                             "valve_max": "Maximale Öffnung",
-                            "valve_timeout": "Positions-Timeout",
                             "valve_keyword": "Ventil-Entitäts-Stichwort"
                         },
                         "data_description": {
-                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur.",
+                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur. „Aus“ lässt das Ventil unangetastet; die Kennlinie bestimmt, wie schnell es bei Temperaturdifferenz öffnet.",
                             "valve_diff": "Temperaturdifferenz für 100% Ventilöffnung.",
                             "valve_step": "Prozentualer Schritt für jede Ventil-Anpassung.",
+                            "valve_min": "Öffnung, bei der dein Ventil noch geschlossen ist (z. B. 18). Jede Öffnung über 0 wird auf den Bereich von diesem Wert bis zur maximalen Öffnung verteilt, sodass schon die kleinste Öffnung Wasser durchlässt. Zu (0 %) bleibt zu. 0 = keine Mindestöffnung.",
                             "valve_max": "Maximal erlaubter Ventilöffnungs-Prozentsatz.",
-                            "valve_timeout": "Ventilposition nach diesem Timeout zurücksetzen.",
                             "valve_keyword": "Nur Ventile steuern, deren Entitätsname dieses Stichwort enthält."
                         }
                     },
@@ -332,7 +312,6 @@
                         "data": {
                             "frost_protection_enabled": "Frostschutz aktivieren",
                             "frost_protection_temp": "Frostschutz-Temperatur",
-                            "frost_protection_duration": "Frostschutz nach",
                             "liming_protection": "Entkalkungsschutz aktivieren",
                             "liming_day": "Entkalkungstag",
                             "liming_time": "Entkalkungszeit",
@@ -342,7 +321,6 @@
                         "data_description": {
                             "frost_protection_enabled": "Aktiviert den automatischen Frostschutz für diesen Raum.",
                             "frost_protection_temp": "Mindesttemperatur, um das Einfrieren der Rohre zu verhindern.",
-                            "frost_protection_duration": "Frostschutz aktivieren nachdem alle so lange abwesend sind.",
                             "liming_protection": "Automatischen Anti-Kalk-Zyklus (Ventilfahrt) aktivieren oder deaktivieren.",
                             "liming_day": "Wochentag für den Anti-Kalk-Zyklus.",
                             "liming_time": "Uhrzeit für den Anti-Kalk-Zyklus (HH:MM:SS).",
@@ -357,8 +335,8 @@
                             "sensor_retention": "Neustart-Puffer"
                         },
                         "data_description": {
-                            "action_delay": "Mindest-Verzögerung zwischen aufeinanderfolgenden TRV-Befehlen.",
-                            "sensor_retention": "Zeitraum nach Start, in dem auf letzte Sensorzustände (Personen, Fenster) zurückgegriffen wird, um Falschmeldungen zu verhindern."
+                            "action_delay": "Ruhezeit nach der letzten Änderung, bevor Tempix neu rechnet (mehrere Änderungen werden zusammengefasst), sowie Pause zwischen Modus- und Temperatur-Befehl eines Thermostats.",
+                            "sensor_retention": "Zeitraum nach dem Start von Tempix, in dem Personen-Zustände als Neustart-Artefakt gelten: Ankunfts- und Abwesenheitsverzögerung entfallen, nicht verfügbare Personen zählen als zuhause."
                         }
                     }
                 }
@@ -370,32 +348,26 @@
                     "schedulers": "Zeitplan-Helfer",
                     "scheduler_selector": "Zeitplan-Auswahl",
                     "holiday_calendar": "Feiertags-Kalender",
-                    "holiday_use_day": "Feiertags-Wochentag"
+                    "holiday_use_day": "Feiertags-Wochentag",
+                    "vacation_home_use_day": "Feiertags-Wochentag (Urlaub Zuhause)"
                 },
                 "data_description": {
                     "schedulers": "Zeitplan-Helfer-Entitäten für Comfort/Eco-Umschaltung auswählen.",
                     "scheduler_selector": "Optionale Entität, die auswählt welcher Zeitplan aktiv ist.",
                     "holiday_calendar": "Optional: ein calendar.holiday_*-Kalender der HA Feiertags-Integration. Ist heute ein Feiertag, wird stattdessen der Zeitplan des gewählten Wochentags verwendet.",
-                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll."
+                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll.",
+                    "vacation_home_use_day": "Überschreibt „Feiertags-Wochentag“, solange der Schalter „Urlaub Zuhause“ aktiv ist. Bleibt das Feld leer, gilt weiterhin „Feiertags-Wochentag“."
                 }
             }
         },
         "error": {
-            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus."
+            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus.",
+            "trv_in_use": "Mindestens eines dieser Thermostate wird schon von einem anderen Tempix-Eintrag gesteuert. Ein Thermostat gehört zu genau einem Eintrag.",
+            "invalid_adjustments": "Das Anpassungs-JSON ist ungültig. Erwartet wird eine JSON-Liste aus Objekten, jeweils mit einem Feld \"time\" (z. B. \"08:00\")."
         }
     },
     "options": {
         "step": {
-            "user": {
-                "title": "Willkommen",
-                "description": "Gib dieser Klima-Regelung einen eindeutigen Namen.",
-                "data": {
-                    "name": "Name der Steuerung"
-                },
-                "data_description": {
-                    "name": "Beispiel: Wohnzimmer, Büro, Schlafzimmer"
-                }
-            },
             "expert_hardware": {
                 "title": "1/6 · Geräte & Sensoren",
                 "description": "Konfiguriere die physische Hardware in diesem Raum: Thermostate, Temperatursensoren, Fensterkontakte und Außentemperatur-Quelle.",
@@ -416,15 +388,13 @@
                             "window_sensors": "Fenster- & Tür-Sensoren",
                             "window_reaction_open": "Verzögerung – Fenster öffnet",
                             "window_reaction_close": "Verzögerung – Fenster schließt",
-                            "window_open_temp": "Lüftungs-Temperatur",
-                            "window_legacy_restore": "Vorherige Temperatur wiederherstellen"
+                            "window_open_temp": "Fenster-offen-Temperatur"
                         },
                         "data_description": {
                             "window_sensors": "Die Klima-Regelung wird automatisch pausiert, wenn ein Sensor 'offen' meldet.",
                             "window_reaction_open": "So lange warten, bevor die Temperatur abgesenkt wird.",
                             "window_reaction_close": "So lange warten, bevor die Temperatur wiederhergestellt wird.",
-                            "window_open_temp": "Temperatur, die bei offenem Fenster gesetzt wird (0.0 = AUS).",
-                            "window_legacy_restore": "Falls aktiviert, wird die Temperatur auf den Wert vor der Lüftung zurückgesetzt."
+                            "window_open_temp": "Temperatur, die bei offenem Fenster oder offener Tür gesetzt wird (0.0 = AUS)."
                         }
                     },
                     "sec_outside": {
@@ -439,7 +409,7 @@
                         "data_description": {
                             "outside_temp_sensor": "Temperatursensor für den Saisonmodus-Schwellenwert. Sollte eine Sensor-Entität mit numerischen Werten sein.",
                             "outside_temp_threshold": "Die Klimasteuerung wird deaktiviert, wenn die Außentemperatur diesen Wert über- (Heizen) bzw. unterschreitet (Kühlen).",
-                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel: Bei Schwelle 17 °C und Hysterese 1 °C schaltet die Klimasteuerung erst bei 18 °C ab und erst bei 16 °C wieder ein.",
+                            "outside_temp_hysteresis": "Verhindert schnelles Hin- und Herschalten nahe der Schwelle. Beispiel bei Schwelle 17 °C und Hysterese 1 °C: Abschalten bei 18 °C (Heizen) bzw. 16 °C (Kühlen), Wiedereinschalten bei 16 °C (Heizen) bzw. 18 °C (Kühlen).",
                             "outside_temp_fallback": "Bei Sensor-Ausfall annehmen, dass Klimaregelung nötig ist.",
                             "weather_entity": "Optionale Wetter-Entität für den Sonnenschein-Offset. Bei sonnigem Wetter (`sunny`) wird die Zieltemperatur um den Sonnenschein-Offset-Wert reduziert. Ermöglicht gleichzeitig einen Temperatursensor für den Saisonmodus und diese Entität für die Sonneneinstrahlung."
                         }
@@ -452,6 +422,7 @@
                 "data": {
                     "sec_temperatures": "Temperaturen",
                     "sec_scheduling": "Zeitplan & Steuerung",
+                    "sec_adjustments": "Anpassungen (JSON)",
                     "sec_calibration": "Kalibrierungs-Einstellungen"
                 },
                 "data_description": {},
@@ -480,6 +451,15 @@
                         },
                         "data_description": {
                             "scheduling_mode": "Wähle 'Helfer' für Zeitplan-Entitäten oder 'Kalender' für kalenderbasierte Steuerung."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Anpassungen (JSON)",
+                        "data": {
+                            "adjustments": "Anpassungs-Mapping (JSON)"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen."
                         }
                     },
                     "sec_calibration": {
@@ -511,18 +491,18 @@
                     "calendar_event": "Ereignis-Stichwörter",
                     "calendar_room": "Standort-Filter",
                     "calendar_scan_interval": "Abfrage-Intervall",
-                    "sync_calendar_with_entities": "Mit Helfern synchronisieren",
                     "holiday_calendar": "Feiertags-Kalender",
-                    "holiday_use_day": "Feiertags-Wochentag"
+                    "holiday_use_day": "Feiertags-Wochentag",
+                    "vacation_home_use_day": "Feiertags-Wochentag (Urlaub Zuhause)"
                 },
                 "data_description": {
                     "calendar": "Wähle einen oder mehrere Kalender aus, deren Events überwacht werden.",
                     "calendar_event": "Kommagetrennte Stichwörter. Nur Events mit diesen Begriffen lösen die Regelung aus.",
                     "calendar_room": "Optional: Nur auf Events an diesem Standort reagieren.",
                     "calendar_scan_interval": "Wie oft der Kalender nach neuen Events geprüft wird.",
-                    "sync_calendar_with_entities": "Kalender-Temperaturen in Helfer-Entitäten für Dashboards schreiben.",
                     "holiday_calendar": "Optional: ein calendar.holiday_*-Kalender der HA Feiertags-Integration. Ist heute ein Feiertag, wird stattdessen der Zeitplan des gewählten Wochentags verwendet.",
-                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll."
+                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll.",
+                    "vacation_home_use_day": "Überschreibt „Feiertags-Wochentag“, solange der Schalter „Urlaub Zuhause“ aktiv ist. Bleibt das Feld leer, gilt weiterhin „Feiertags-Wochentag“."
                 }
             },
             "expert_presence": {
@@ -593,8 +573,7 @@
                     "sec_season_mode": "Saison Modus",
                     "sec_temperature_tweaks": "Zusatz-Verhalten",
                     "sec_away_mode": "Verhalten bei Abwesenheit",
-                    "sec_aggressive_mode": "Aggressiver Betrieb",
-                    "sec_adjustments": "Anpassungen (JSON)"
+                    "sec_aggressive_mode": "Aggressiver Betrieb"
                 },
                 "data_description": {},
                 "sections": {
@@ -653,17 +632,6 @@
                             "aggressive_range": "Temperaturdifferenz die den aggressiven Modus aktiviert.",
                             "aggressive_offset": "Zusätzlicher Temperatur-Offset bei aggressivem Modus."
                         }
-                    },
-                    "sec_adjustments": {
-                        "name": "Anpassungen (JSON)",
-                        "data": {
-                            "adjustments": "Anpassungs-Mapping (JSON)",
-                            "sync_adjustments": "Anpassungen (JSON) synchronisieren"
-                        },
-                        "data_description": {
-                            "adjustments": "JSON-Array von zeit- oder entitätsbasierten Temperaturanpassungen.",
-                            "sync_adjustments": "Berechnete Anpassungen zurück in Helfer-Entitäten schreiben."
-                        }
                     }
                 }
             },
@@ -671,44 +639,28 @@
                 "title": "6/6 · Erweitert & Schutz",
                 "description": "Ventilsteuerung, Frost- & Kalkschutz und System-Timing.",
                 "data": {
-                    "sec_season_mode": "Saison Modus",
-                    "sec_valve_positioning": "Ventilsteuerung (Prozent)",
+                    "sec_valve_positioning": "Ventilsteuerung",
                     "sec_protection": "Schutzfunktionen (Frost & Kalk)",
                     "sec_timing": "System-Timing"
                 },
                 "data_description": {},
                 "sections": {
-                    "sec_season_mode": {
-                        "name": "Saison Modus",
-                        "data": {
-                            "season_mode_entity": "Saison-Helfer",
-                            "idle_temperature": "Leerlauf-Temperatur",
-                            "room_temp_threshold_enabled": "Raumtemp-Schwelle aktivieren",
-                            "room_temp_threshold": "Max. Raumtemperatur"
-                        },
-                        "data_description": {
-                            "season_mode_entity": "Steuert ob die Klimaautomatik aktiv ist. Ein = Automatik aktiv, Aus = Automatik inaktiv.",
-                            "idle_temperature": "Rückfall-Temperatur wenn die Automatisierung inaktiv ist.",
-                            "room_temp_threshold_enabled": "Obere Grenze für die Raumtemperatur aktivieren.",
-                            "room_temp_threshold": "Regelung stoppen wenn der Raum diese Temperatur erreicht."
-                        }
-                    },
                     "sec_valve_positioning": {
-                        "name": "Ventilsteuerung (Prozent)",
+                        "name": "Ventilsteuerung",
                         "data": {
-                            "valve_mode": "Ventilsteuerung aktivieren",
-                            "valve_diff": "Diff für volle Öffnung",
+                            "valve_mode": "Ventilsteuerung / Kennlinie",
+                            "valve_diff": "Temperaturdifferenz für volle Öffnung",
                             "valve_step": "Ventil-Schrittweite",
+                            "valve_min": "Mindestöffnung (Schließpunkt)",
                             "valve_max": "Maximale Öffnung",
-                            "valve_timeout": "Positions-Timeout",
                             "valve_keyword": "Ventil-Entitäts-Stichwort"
                         },
                         "data_description": {
-                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur.",
+                            "valve_mode": "TRV-Ventilposition direkt steuern statt über Temperatur. „Aus“ lässt das Ventil unangetastet; die Kennlinie bestimmt, wie schnell es bei Temperaturdifferenz öffnet.",
                             "valve_diff": "Temperaturdifferenz für 100% Ventilöffnung.",
                             "valve_step": "Prozentualer Schritt für jede Ventil-Anpassung.",
+                            "valve_min": "Öffnung, bei der dein Ventil noch geschlossen ist (z. B. 18). Jede Öffnung über 0 wird auf den Bereich von diesem Wert bis zur maximalen Öffnung verteilt, sodass schon die kleinste Öffnung Wasser durchlässt. Zu (0 %) bleibt zu. 0 = keine Mindestöffnung.",
                             "valve_max": "Maximal erlaubter Ventilöffnungs-Prozentsatz.",
-                            "valve_timeout": "Ventilposition nach diesem Timeout zurücksetzen.",
                             "valve_keyword": "Nur Ventile steuern, deren Entitätsname dieses Stichwort enthält."
                         }
                     },
@@ -717,7 +669,6 @@
                         "data": {
                             "frost_protection_enabled": "Frostschutz aktivieren",
                             "frost_protection_temp": "Frostschutz-Temperatur",
-                            "frost_protection_duration": "Frostschutz nach",
                             "liming_protection": "Entkalkungsschutz aktivieren",
                             "liming_day": "Entkalkungstag",
                             "liming_time": "Entkalkungszeit",
@@ -727,7 +678,6 @@
                         "data_description": {
                             "frost_protection_enabled": "Aktiviert den automatischen Frostschutz für diesen Raum.",
                             "frost_protection_temp": "Mindesttemperatur, um das Einfrieren der Rohre zu verhindern.",
-                            "frost_protection_duration": "Frostschutz aktivieren nachdem alle so lange abwesend sind.",
                             "liming_protection": "Automatischen Anti-Kalk-Zyklus (Ventilfahrt) aktivieren oder deaktivieren.",
                             "liming_day": "Wochentag für den Anti-Kalk-Zyklus.",
                             "liming_time": "Uhrzeit für den Anti-Kalk-Zyklus (HH:MM:SS).",
@@ -742,8 +692,8 @@
                             "sensor_retention": "Neustart-Puffer"
                         },
                         "data_description": {
-                            "action_delay": "Mindest-Verzögerung zwischen aufeinanderfolgenden TRV-Befehlen.",
-                            "sensor_retention": "Zeitraum nach Start, in dem auf letzte Sensorzustände (Personen, Fenster) zurückgegriffen wird, um Falschmeldungen zu verhindern."
+                            "action_delay": "Ruhezeit nach der letzten Änderung, bevor Tempix neu rechnet (mehrere Änderungen werden zusammengefasst), sowie Pause zwischen Modus- und Temperatur-Befehl eines Thermostats.",
+                            "sensor_retention": "Zeitraum nach dem Start von Tempix, in dem Personen-Zustände als Neustart-Artefakt gelten: Ankunfts- und Abwesenheitsverzögerung entfallen, nicht verfügbare Personen zählen als zuhause."
                         }
                     }
                 }
@@ -755,18 +705,22 @@
                     "schedulers": "Zeitplan-Helfer",
                     "scheduler_selector": "Zeitplan-Auswahl",
                     "holiday_calendar": "Feiertags-Kalender",
-                    "holiday_use_day": "Feiertags-Wochentag"
+                    "holiday_use_day": "Feiertags-Wochentag",
+                    "vacation_home_use_day": "Feiertags-Wochentag (Urlaub Zuhause)"
                 },
                 "data_description": {
                     "schedulers": "Zeitplan-Helfer-Entitäten für Comfort/Eco-Umschaltung auswählen.",
                     "scheduler_selector": "Optionale Entität, die auswählt welcher Zeitplan aktiv ist.",
                     "holiday_calendar": "Optional: ein calendar.holiday_*-Kalender der HA Feiertags-Integration. Ist heute ein Feiertag, wird stattdessen der Zeitplan des gewählten Wochentags verwendet.",
-                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll."
+                    "holiday_use_day": "Welcher Wochentag-Zeitplan an Feiertagen gelten soll.",
+                    "vacation_home_use_day": "Überschreibt „Feiertags-Wochentag“, solange der Schalter „Urlaub Zuhause“ aktiv ist. Bleibt das Feld leer, gilt weiterhin „Feiertags-Wochentag“."
                 }
             }
         },
         "error": {
-            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus."
+            "no_trvs": "Bitte wähle mindestens ein Thermostat (TRV) aus.",
+            "trv_in_use": "Mindestens eines dieser Thermostate wird schon von einem anderen Tempix-Eintrag gesteuert. Ein Thermostat gehört zu genau einem Eintrag.",
+            "invalid_adjustments": "Das Anpassungs-JSON ist ungültig. Erwartet wird eine JSON-Liste aus Objekten, jeweils mit einem Feld \"time\" (z. B. \"08:00\")."
         }
     },
     "entity": {
@@ -835,41 +789,20 @@
             "sunshine_offset_value": {
                 "name": "Sonnenschein-Offset Wert"
             },
-            "away_offset": {
-                "name": "Abwesenheits-Offset"
-            },
-            "aggressive_range": {
-                "name": "Aggressiver Bereich"
-            },
-            "aggressive_offset": {
-                "name": "Aggressiver Offset"
-            },
-            "frost_protection_temp": {
-                "name": "Frostschutz-Temperatur"
-            },
             "temp_comfort_static": {
                 "name": "Comfort-Temperatur"
             },
             "temp_eco_static": {
                 "name": "Eco-Temperatur"
             },
-            "window_open_temp": {
-                "name": "Fenster-offen Temperatur"
-            },
             "party_temperature": {
                 "name": "Party-Temperatur"
             },
             "vacation_temperature": {
-                "name": "Urlaubs-Temperatur"
-            },
-            "idle_temperature": {
-                "name": "Leerlauf-Temperatur"
-            },
-            "generic_calibration_limit": {
-                "name": "Kalibrierungs-Limit"
+                "name": "Urlaub Abwesenheitstemperatur"
             },
             "max_smart_preconditioning": {
-                "name": "Smartes Vor-Temperieren (Max. Dauer)"
+                "name": "Smartes Vor-Temperieren Max. Dauer"
             },
             "learned_climate_rate": {
                 "name": "Smartes Vor-Temperieren Lernrate"
@@ -883,7 +816,10 @@
                 "name": "Party-Modus"
             },
             "vacation_mode_switch": {
-                "name": "Urlaubs-Modus"
+                "name": "Urlaub Abwesend"
+            },
+            "vacation_home": {
+                "name": "Urlaub Zuhause"
             },
             "liming_protection": {
                 "name": "Entkalkungsschutz"
@@ -894,8 +830,8 @@
             "automation_active": {
                 "name": "Automatisierung Aktiv"
             },
-            "manual_override": {
-                "name": "Manuelle Steuerung"
+            "manual_mode": {
+                "name": "Manueller Modus"
             },
             "temporary_manual_override": {
                 "name": "Temporäre Manuelle Steuerung"
@@ -957,6 +893,14 @@
                 "generic": "Generisch (Ziel-Temperatur)"
             }
         },
+        "valve_mode": {
+            "options": {
+                "off": "Aus",
+                "regular": "Linear",
+                "pessimistic": "Pessimistisch (öffnet früher)",
+                "optimistic": "Optimistisch (öffnet später)"
+            }
+        },
         "calibration_step_size": {
             "options": {
                 "auto": "Auto",
@@ -994,6 +938,17 @@
                 "sun": "Sonntag"
             }
         },
+        "vacation_home_use_day": {
+            "options": {
+                "mon": "Montag",
+                "tue": "Dienstag",
+                "wed": "Mittwoch",
+                "thu": "Donnerstag",
+                "fri": "Freitag",
+                "sat": "Samstag",
+                "sun": "Sonntag"
+            }
+        },
         "away_behavior": {
             "options": {
                 "offset": "Offset anwenden",
@@ -1001,6 +956,77 @@
                 "off": "Ausschalten",
                 "ignore": "Abwesenheit ignorieren"
             }
+        }
+    },
+    "exceptions": {
+        "override_disabled": {
+            "message": "Der temporäre manuelle Modus ist für {name} deaktiviert. Aktiviere zuerst „Temporären manuellen Modus erlauben“ in den Optionen."
+        }
+    },
+    "issues": {
+        "room_paused": {
+            "title": "{name} ist pausiert",
+            "description": "Die automatische Regelung für \"{name}\" ist seit {since} pausiert, Grund: {reason}. Prüfe, ob der betroffene Sensor noch funktioniert (z. B. leere Batterie oder Verbindungsabbruch) — der Raum läuft automatisch weiter, sobald er sich erholt."
+        },
+        "room_update_failing": {
+            "title": "{name}: Automatik schlägt fehl",
+            "description": "Der Regelzyklus für \"{name}\" schlägt seit {since} fehl mit: {error}. Der Raum wird aktuell nicht geregelt. Prüfe das Log (voller Traceback) und lade die Integration ggf. neu."
+        },
+        "room_calibration_unavailable": {
+            "title": "{name}: Kalibrierung ist inaktiv",
+            "description": "Die generische Kalibrierung für \"{name}\" arbeitet seit {since} nicht: {trvs} liefert keine interne Temperatur (current_temperature ist leer). Der Raum heizt/kühlt weiter, aber mit unkalibriertem Sollwert. Typische Ursachen: Sommerbetrieb des Thermostats (z. B. FRITZ-Heizplan) oder Funkverbindung unterbrochen. Die Meldung löst sich selbst auf, sobald das Thermostat wieder eine Temperatur meldet."
+        },
+        "room_trv_unavailable": {
+            "title": "{name}: Thermostat nicht erreichbar",
+            "description": "Das Thermostat/die Klimaanlage für \"{name}\" ist seit {since} nicht verfügbar: {trvs}. Tempix kann dieses Gerät nicht steuern — es wird komplett übersprungen und hängt möglicherweise in seinem letzten Zustand fest (z. B. heizt weiter). Prüfe Stromversorgung, Batterie und Funkverbindung des Geräts. Die Meldung löst sich selbst auf, sobald das Gerät wieder erreichbar ist."
+        },
+        "room_trv_unavailable_paused": {
+            "title": "{name}: Gerät im manuellen Modus nicht erreichbar",
+            "description": "\"{name}\" steht im manuellen Modus, Tempix sendet hier also bewusst keine eigenen Befehle. Das Thermostat/die Klimaanlage ist aber seit {since} nicht verfügbar: {trvs}. Was du über die Tempix-Karte einstellst, wird weitergereicht, kommt beim Gerät aber nicht an — die Karte zeigt es trotzdem an. Prüfe Stromversorgung, Batterie und Funkverbindung des Geräts. Ist das Gerät absichtlich aus (z. B. über die Saison), ignoriere diese Meldung; sie bleibt dann auch über Neustarts ausgeblendet, bis das Gerät wieder erreichbar war. Die Meldung löst sich selbst auf, sobald das Gerät wieder erreichbar ist."
+        },
+        "room_degraded": {
+            "title": "{name}: läuft mit einem Ersatzwert",
+            "description": "\"{name}\" läuft seit {since} mit einem eingeschränkten Eingangswert statt dem echten Messwert: {reason}. Je nach Ursache regelt Tempix auf dieser unsicheren Grundlage weiter oder hält die Sollwerte an: Fallen alle Raumsensoren aus, bleiben die Thermostate auf ihrem letzten Sollwert (nur Ventilstellung und Frostschutz laufen weiter). Prüfe den betroffenen Sensor. Die Meldung löst sich selbst auf, sobald der Eingang wieder gültig ist."
+        },
+        "room_dead_reference": {
+            "title": "{name}: konfigurierte Entity existiert nicht mehr",
+            "description": "\"{name}\" verweist auf Entities, die es in Home Assistant nicht gibt: {entities}. Festgestellt seit {since}. Eine gelöschte oder umbenannte Entity erzeugt keinen Fehler — sie wirkt still: Anwesenheitserkennung, Fenstererkennung oder der Zeitplan können ausfallen, ohne dass irgendwo etwas davon zu sehen wäre. Entferne den Verweis in den Einstellungen des Raums, oder stelle die Entity wieder her. Die Meldung verschwindet, sobald der Verweis entfernt oder die Entity wiederhergestellt ist. Bis dahin bleibt sie bestehen."
+        },
+        "config_temp_order": {
+            "title": "{name}: Comfort-/Eco-Temperatur scheint vertauscht",
+            "description": "„{name}“ hat Comfort und Eco in derselben Richtung, aber die Temperaturen widersprechen ihr: {details}. Heizen: Comfort sollte mindestens so hoch wie Eco sein; Kühlen: höchstens so hoch. So heizt/kühlt Comfort weniger als Eco. Temperaturen im Raum prüfen. Der Hinweis verschwindet, sobald die Einstellungen stimmig sind."
+        },
+        "config_mode_conflict": {
+            "title": "{name}: Comfort und Eco widersprechen sich bei Heizen/Kühlen",
+            "description": "„{name}“ hat eine Phase auf heat und die andere auf cool: {details}. Tempix behandelt den ganzen Raum dann stillschweigend als Kühlung. Beide Phasen auf dieselbe Richtung stellen. Der Hinweis verschwindet, sobald die Einstellungen stimmig sind."
+        },
+        "config_frost_above_eco": {
+            "title": "{name}: Frostschutz liegt über der Eco-Temperatur",
+            "description": "Der Frostschutz von „{name}“ ist höher als die Eco-Temperatur: {details}. Der Frostschutz hebt dann jedes Eco-Soll auf die Frost-Temperatur an, Eco wirkt so nie wie eingestellt. Frost-Temperatur senken oder Eco anheben."
+        },
+        "config_adjustments": {
+            "title": "{name}: Zeitplan-Anpassungen enthalten unbrauchbare Einträge",
+            "description": "Die Anpassungen von „{name}“ enthalten Einträge, die ignoriert werden oder nie greifen: {details}. Die Zählung beginnt bei 0. Felder: time muss HH:MM sein (z. B. 06:30), mode einer von comfort/eco/off/auto, days muss Mon–Sun enthalten (groß geschrieben, z. B. Mon, Sat). JSON in den Raum-Einstellungen korrigieren."
+        },
+        "config_holiday_no_day": {
+            "title": "{name}: Feiertagskalender ohne Ersatz-Wochentag",
+            "description": "„{name}“ nutzt den Feiertagskalender {details}, aber es ist kein Wochentag für Feiertage gesetzt. Die Feiertags-Umleitung greift nie. Den Feiertags-Wochentag in den Raum-Einstellungen setzen."
+        },
+        "config_aggressive_no_offset": {
+            "title": "{name}: Aggressiver Modus ohne Offset",
+            "description": "„{name}“ hat den aggressiven Modus aktiv ({details}). Der Boost hat keine Wirkung. Offset über 0 setzen oder den aggressiven Modus ausschalten."
+        },
+        "config_preconditioning_zero": {
+            "title": "{name}: Smart-Vorheizen ohne Vorlaufzeit",
+            "description": "„{name}“ hat Smart-Vorheizen aktiv, aber die maximale Vorlaufzeit ist 0 ({details}). Es kann nie früher starten. Maximale Vorlaufzeit über 0 setzen oder abschalten."
+        },
+        "config_proximity_zero": {
+            "title": "{name}: Proximity-Distanz ist 0",
+            "description": "„{name}“ nutzt einen Proximity-Sensor mit {details}. Der Proximity-Auslöser „towards“ feuert praktisch nie (der Kanal „arrived“ ignoriert die Distanz). Distanz über 0 setzen."
+        },
+        "config_valve_min_not_below_max": {
+            "title": "{name}: Mindestöffnung des Ventils liegt nicht unter der Maximalöffnung",
+            "description": "„{name}“ hat die Ventilsteuerung aktiv mit {details}. Das Ventil kann dann nur zu oder ganz auf Maximalöffnung stehen, nichts dazwischen. Die Mindestöffnung unter die Maximalöffnung setzen."
         }
     }
 }

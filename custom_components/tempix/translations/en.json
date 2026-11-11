@@ -31,15 +31,13 @@
                             "window_sensors": "Window & Door Sensors",
                             "window_reaction_open": "Delay – Window Opens",
                             "window_reaction_close": "Delay – Window Closes",
-                            "window_open_temp": "Ventilation Temperature",
-                            "window_legacy_restore": "Restore previous temperature"
+                            "window_open_temp": "Window Open Temperature"
                         },
                         "data_description": {
                             "window_sensors": "Climate control pauses automatically when a sensor reports 'open'.",
                             "window_reaction_open": "Wait this long before lowering the temperature.",
                             "window_reaction_close": "Wait this long before restoring the temperature.",
-                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
-                            "window_legacy_restore": "If enabled, restore the target temperature that was active before the window was opened."
+                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF)."
                         }
                     },
                     "sec_outside": {
@@ -54,7 +52,7 @@
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
                             "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
-                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example with a threshold of 17 °C and hysteresis of 1 °C: turns off at 18 °C (heating) or 16 °C (cooling), turns back on at 16 °C (heating) or 18 °C (cooling).",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
                             "weather_entity": "Optional weather entity for Sunshine Offset. When sunny, the target temperature is reduced by the Sunshine Offset value. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }
@@ -67,6 +65,7 @@
                 "data": {
                     "sec_temperatures": "Temperatures",
                     "sec_scheduling": "Scheduling",
+                    "sec_adjustments": "Adjustments (JSON)",
                     "sec_calibration": "Calibration Settings"
                 },
                 "data_description": {},
@@ -95,6 +94,15 @@
                         },
                         "data_description": {
                             "scheduling_mode": "Choose 'Helper' for schedule entities or 'Calendar' for calendar‑based control."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Adjustments (JSON)",
+                        "data": {
+                            "adjustments": "Adjustment Mapping (JSON)"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments."
                         }
                     },
                     "sec_calibration": {
@@ -126,18 +134,18 @@
                     "calendar_event": "Event Keywords",
                     "calendar_room": "Location Filter",
                     "calendar_scan_interval": "Scan Interval",
-                    "sync_calendar_with_entities": "Sync with Helpers",
                     "holiday_calendar": "Holiday Calendar",
-                    "holiday_use_day": "Holiday Use Day"
+                    "holiday_use_day": "Holiday Use Day",
+                    "vacation_home_use_day": "Holiday Use Day (Vacation at home)"
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
                     "calendar_event": "Comma‑separated keywords. Only events matching these will trigger the climate control.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
-                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
                     "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
-                    "holiday_use_day": "Which weekday schedule to use on public holidays."
+                    "holiday_use_day": "Which weekday schedule to use on public holidays.",
+                    "vacation_home_use_day": "Overrides Holiday Use Day while the “Vacation at home” switch is active. Falls back to Holiday Use Day if left empty."
                 }
             },
             "expert_presence": {
@@ -208,8 +216,7 @@
                     "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
                     "sec_away_mode": "Away Mode Behavior",
-                    "sec_aggressive_mode": "Aggressive Mode",
-                    "sec_adjustments": "Adjustments (JSON)"
+                    "sec_aggressive_mode": "Aggressive Mode"
                 },
                 "data_description": {},
                 "sections": {
@@ -268,17 +275,6 @@
                             "aggressive_range": "Temperature difference that activates aggressive mode.",
                             "aggressive_offset": "Additional temperature offset during aggressive mode."
                         }
-                    },
-                    "sec_adjustments": {
-                        "name": "Adjustments (JSON)",
-                        "data": {
-                            "adjustments": "Adjustment Mapping (JSON)",
-                            "sync_adjustments": "Sync adjustments (JSON) with entities"
-                        },
-                        "data_description": {
-                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments.",
-                            "sync_adjustments": "Write computed adjustments back to helper entities."
-                        }
                     }
                 }
             },
@@ -286,44 +282,28 @@
                 "title": "6/6 · Advanced & Protection",
                 "description": "Valve positioning, frost & liming protection, and system timing.",
                 "data": {
-                    "sec_season_mode": "Season Mode",
                     "sec_valve_positioning": "Valve Positioning",
                     "sec_protection": "Protection & Liming",
                     "sec_timing": "System Timing"
                 },
                 "data_description": {},
                 "sections": {
-                    "sec_season_mode": {
-                        "name": "Season Mode",
-                        "data": {
-                            "season_mode_entity": "Season Helper",
-                            "idle_temperature": "Idle Temperature",
-                            "room_temp_threshold_enabled": "Enable room temp threshold",
-                            "room_temp_threshold": "Max Room Temperature"
-                        },
-                        "data_description": {
-                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
-                            "idle_temperature": "Fallback temperature when the automation is inactive.",
-                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
-                        }
-                    },
                     "sec_valve_positioning": {
                         "name": "Valve Positioning",
                         "data": {
-                            "valve_mode": "Enable valve positioning",
+                            "valve_mode": "Valve positioning / curve",
                             "valve_diff": "Diff for full opening",
                             "valve_step": "Valve step size",
+                            "valve_min": "Minimum opening (closing point)",
                             "valve_max": "Maximum opening",
-                            "valve_timeout": "Position timeout",
                             "valve_keyword": "Valve entity keyword"
                         },
                         "data_description": {
-                            "valve_mode": "Directly control TRV valve position instead of temperature.",
+                            "valve_mode": "Directly control TRV valve position instead of temperature. \"Off\" leaves the valve untouched; the curve decides how fast it opens for a given temperature difference.",
                             "valve_diff": "Temperature difference for 100% valve opening.",
                             "valve_step": "Percentage step size for each valve adjustment.",
+                            "valve_min": "Opening at which your valve is still physically closed (e.g. 18). Every opening above 0 is spread over the range from this value up to the maximum opening, so even the smallest opening lets water through. Closed (0 %) stays closed. 0 = no minimum.",
                             "valve_max": "Maximum allowed valve opening percentage.",
-                            "valve_timeout": "Reset valve position after this timeout.",
                             "valve_keyword": "Only control valves whose entity name contains this keyword."
                         }
                     },
@@ -332,7 +312,6 @@
                         "data": {
                             "frost_protection_enabled": "Frost Protection",
                             "frost_protection_temp": "Frost Protection Temperature",
-                            "frost_protection_duration": "Frost protection after",
                             "liming_protection": "Liming Protection",
                             "liming_day": "Liming day",
                             "liming_time": "Liming time",
@@ -342,7 +321,6 @@
                         "data_description": {
                             "frost_protection_enabled": "Enable or disable automatic frost protection for this room.",
                             "frost_protection_temp": "Minimum temperature to prevent pipes from freezing.",
-                            "frost_protection_duration": "Activate frost protection after everyone is away for this long.",
                             "liming_protection": "Enable or disable automatic anti‑liming cycle (valve exercise).",
                             "liming_day": "Day of the week for the anti‑liming cycle.",
                             "liming_time": "Time of day for the anti‑liming cycle (HH:MM:SS).",
@@ -357,8 +335,8 @@
                             "sensor_retention": "Startup Grace Period"
                         },
                         "data_description": {
-                            "action_delay": "Minimum delay between consecutive TRV commands.",
-                            "sensor_retention": "Duration after HA boot where sensors (windows, persons) fall back to their last known state to prevent false triggers."
+                            "action_delay": "Quiet time after the last change before Tempix recalculates (several changes are bundled), and pause between the mode and temperature command of one thermostat.",
+                            "sensor_retention": "Time after Tempix starts in which person states count as restart artifacts: the arrival and departure delays are skipped, and unavailable persons count as home."
                         }
                     }
                 }
@@ -370,18 +348,22 @@
                     "schedulers": "Schedule Helpers",
                     "scheduler_selector": "Schedule Selector",
                     "holiday_calendar": "Holiday Calendar",
-                    "holiday_use_day": "Holiday Use Day"
+                    "holiday_use_day": "Holiday Use Day",
+                    "vacation_home_use_day": "Holiday Use Day (Vacation at home)"
                 },
                 "data_description": {
                     "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
                     "scheduler_selector": "Optional entity that selects which schedule is active.",
                     "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
-                    "holiday_use_day": "Which weekday schedule to use on public holidays."
+                    "holiday_use_day": "Which weekday schedule to use on public holidays.",
+                    "vacation_home_use_day": "Overrides Holiday Use Day while the “Vacation at home” switch is active. Falls back to Holiday Use Day if left empty."
                 }
             }
         },
         "error": {
-            "no_trvs": "Please select at least one thermostat (TRV)."
+            "no_trvs": "Please select at least one thermostat (TRV).",
+            "trv_in_use": "At least one of these thermostats is already controlled by another Tempix entry. A thermostat belongs to exactly one entry.",
+            "invalid_adjustments": "The adjustments JSON is invalid. Expected a JSON list of objects, each with a \"time\" field (for example \"08:00\")."
         }
     },
     "options": {
@@ -406,15 +388,13 @@
                             "window_sensors": "Window & Door Sensors",
                             "window_reaction_open": "Delay – Window Opens",
                             "window_reaction_close": "Delay – Window Closes",
-                            "window_open_temp": "Ventilation Temperature",
-                            "window_legacy_restore": "Restore previous temperature"
+                            "window_open_temp": "Window Open Temperature"
                         },
                         "data_description": {
                             "window_sensors": "Climate control pauses automatically when a sensor reports 'open'.",
                             "window_reaction_open": "Wait this long before lowering the temperature.",
                             "window_reaction_close": "Wait this long before restoring the temperature.",
-                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF).",
-                            "window_legacy_restore": "If enabled, restore the target temperature that was active before the window was opened."
+                            "window_open_temp": "Temperature used while a window or door is open (0.0 = OFF)."
                         }
                     },
                     "sec_outside": {
@@ -429,7 +409,7 @@
                         "data_description": {
                             "outside_temp_sensor": "Temperature sensor used for the season mode threshold. Use a sensor entity for numeric readings.",
                             "outside_temp_threshold": "Climate control is disabled when outside temperature exceeds (heating) or drops below (cooling) this value.",
-                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example: With a threshold of 17 °C and hysteresis of 1 °C, climate control turns off at 18 °C and back on at 16 °C.",
+                            "outside_temp_hysteresis": "Prevents rapid switching near the threshold. Example with a threshold of 17 °C and hysteresis of 1 °C: turns off at 18 °C (heating) or 16 °C (cooling), turns back on at 16 °C (heating) or 18 °C (cooling).",
                             "outside_temp_fallback": "If the outside sensor fails, assume climate control is needed.",
                             "weather_entity": "Optional weather entity for Sunshine Offset. When sunny, the target temperature is reduced by the Sunshine Offset value. Allows using a separate temperature sensor for season mode and this entity for solar gain detection."
                         }
@@ -442,6 +422,7 @@
                 "data": {
                     "sec_temperatures": "Temperatures",
                     "sec_scheduling": "Scheduling",
+                    "sec_adjustments": "Adjustments (JSON)",
                     "sec_calibration": "Calibration Settings"
                 },
                 "data_description": {},
@@ -470,6 +451,15 @@
                         },
                         "data_description": {
                             "scheduling_mode": "Choose 'Helper' for schedule entities or 'Calendar' for calendar‑based control."
+                        }
+                    },
+                    "sec_adjustments": {
+                        "name": "Adjustments (JSON)",
+                        "data": {
+                            "adjustments": "Adjustment Mapping (JSON)"
+                        },
+                        "data_description": {
+                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments."
                         }
                     },
                     "sec_calibration": {
@@ -501,18 +491,18 @@
                     "calendar_event": "Event Keywords",
                     "calendar_room": "Location Filter",
                     "calendar_scan_interval": "Scan Interval",
-                    "sync_calendar_with_entities": "Sync with Helpers",
                     "holiday_calendar": "Holiday Calendar",
-                    "holiday_use_day": "Holiday Use Day"
+                    "holiday_use_day": "Holiday Use Day",
+                    "vacation_home_use_day": "Holiday Use Day (Vacation at home)"
                 },
                 "data_description": {
                     "calendar": "Select one or more calendar entities to watch for events.",
                     "calendar_event": "Comma‑separated keywords. Only events matching these will trigger the climate control.",
                     "calendar_room": "Optional: only respond to events at this location.",
                     "calendar_scan_interval": "How often to check the calendar for new events.",
-                    "sync_calendar_with_entities": "Write calendar temperatures into helper entities for dashboards.",
                     "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
-                    "holiday_use_day": "Which weekday schedule to use on public holidays."
+                    "holiday_use_day": "Which weekday schedule to use on public holidays.",
+                    "vacation_home_use_day": "Overrides Holiday Use Day while the “Vacation at home” switch is active. Falls back to Holiday Use Day if left empty."
                 }
             },
             "expert_presence": {
@@ -583,8 +573,7 @@
                     "sec_season_mode": "Season Mode",
                     "sec_temperature_tweaks": "Temperature Tweaks",
                     "sec_away_mode": "Away Mode Behavior",
-                    "sec_aggressive_mode": "Aggressive Mode",
-                    "sec_adjustments": "Adjustments (JSON)"
+                    "sec_aggressive_mode": "Aggressive Mode"
                 },
                 "data_description": {},
                 "sections": {
@@ -643,17 +632,6 @@
                             "aggressive_range": "Temperature difference that activates aggressive mode.",
                             "aggressive_offset": "Additional temperature offset during aggressive mode."
                         }
-                    },
-                    "sec_adjustments": {
-                        "name": "Adjustments (JSON)",
-                        "data": {
-                            "adjustments": "Adjustment Mapping (JSON)",
-                            "sync_adjustments": "Sync adjustments (JSON) with entities"
-                        },
-                        "data_description": {
-                            "adjustments": "JSON array of time‑based or entity‑based temperature adjustments.",
-                            "sync_adjustments": "Write computed adjustments back to helper entities."
-                        }
                     }
                 }
             },
@@ -661,44 +639,28 @@
                 "title": "6/6 · Advanced & Protection",
                 "description": "Valve positioning, frost & liming protection, and system timing.",
                 "data": {
-                    "sec_season_mode": "Season Mode",
                     "sec_valve_positioning": "Valve Positioning",
                     "sec_protection": "Protection & Liming",
                     "sec_timing": "System Timing"
                 },
                 "data_description": {},
                 "sections": {
-                    "sec_season_mode": {
-                        "name": "Season Mode",
-                        "data": {
-                            "season_mode_entity": "Season Helper",
-                            "idle_temperature": "Idle Temperature",
-                            "room_temp_threshold_enabled": "Enable room temp threshold",
-                            "room_temp_threshold": "Max Room Temperature"
-                        },
-                        "data_description": {
-                            "season_mode_entity": "Controls whether climate automation is active. ON = automation active, OFF = automation inactive.",
-                            "idle_temperature": "Fallback temperature when the automation is inactive.",
-                            "room_temp_threshold_enabled": "Enable an upper limit on room temperature.",
-                            "room_temp_threshold": "Stop the climate control when the room reaches this temperature."
-                        }
-                    },
                     "sec_valve_positioning": {
                         "name": "Valve Positioning",
                         "data": {
-                            "valve_mode": "Enable valve positioning",
+                            "valve_mode": "Valve positioning / curve",
                             "valve_diff": "Diff for full opening",
                             "valve_step": "Valve step size",
+                            "valve_min": "Minimum opening (closing point)",
                             "valve_max": "Maximum opening",
-                            "valve_timeout": "Position timeout",
                             "valve_keyword": "Valve entity keyword"
                         },
                         "data_description": {
-                            "valve_mode": "Directly control TRV valve position instead of temperature.",
+                            "valve_mode": "Directly control TRV valve position instead of temperature. \"Off\" leaves the valve untouched; the curve decides how fast it opens for a given temperature difference.",
                             "valve_diff": "Temperature difference for 100% valve opening.",
                             "valve_step": "Percentage step size for each valve adjustment.",
+                            "valve_min": "Opening at which your valve is still physically closed (e.g. 18). Every opening above 0 is spread over the range from this value up to the maximum opening, so even the smallest opening lets water through. Closed (0 %) stays closed. 0 = no minimum.",
                             "valve_max": "Maximum allowed valve opening percentage.",
-                            "valve_timeout": "Reset valve position after this timeout.",
                             "valve_keyword": "Only control valves whose entity name contains this keyword."
                         }
                     },
@@ -707,17 +669,15 @@
                         "data": {
                             "frost_protection_enabled": "Frost Protection",
                             "frost_protection_temp": "Frost Protection Temperature",
-                            "frost_protection_duration": "Frost protection after",
                             "liming_protection": "Liming Protection",
                             "liming_day": "Liming day",
                             "liming_time": "Liming time",
                             "liming_duration": "Liming duration",
-                            "liming_in_season": "Liming in season too"
+                            "liming_in_season": "Liming in season mode too"
                         },
                         "data_description": {
                             "frost_protection_enabled": "Enable or disable automatic frost protection for this room.",
                             "frost_protection_temp": "Minimum temperature to prevent pipes from freezing.",
-                            "frost_protection_duration": "Activate frost protection after everyone is away for this long.",
                             "liming_protection": "Enable or disable automatic anti‑liming cycle (valve exercise).",
                             "liming_day": "Day of the week for the anti‑liming cycle.",
                             "liming_time": "Time of day for the anti‑liming cycle (HH:MM:SS).",
@@ -732,8 +692,8 @@
                             "sensor_retention": "Startup Grace Period"
                         },
                         "data_description": {
-                            "action_delay": "Minimum delay between consecutive TRV commands.",
-                            "sensor_retention": "Duration after HA boot where sensors (windows, persons) fall back to their last known state to prevent false triggers."
+                            "action_delay": "Quiet time after the last change before Tempix recalculates (several changes are bundled), and pause between the mode and temperature command of one thermostat.",
+                            "sensor_retention": "Time after Tempix starts in which person states count as restart artifacts: the arrival and departure delays are skipped, and unavailable persons count as home."
                         }
                     }
                 }
@@ -745,18 +705,22 @@
                     "schedulers": "Schedule Helpers",
                     "scheduler_selector": "Schedule Selector",
                     "holiday_calendar": "Holiday Calendar",
-                    "holiday_use_day": "Holiday Use Day"
+                    "holiday_use_day": "Holiday Use Day",
+                    "vacation_home_use_day": "Holiday Use Day (Vacation at home)"
                 },
                 "data_description": {
                     "schedulers": "Select schedule helper entities for Comfort/Eco switching.",
                     "scheduler_selector": "Optional entity that selects which schedule is active.",
                     "holiday_calendar": "Optional: a calendar.holiday_* entity from the HA Holiday integration. If a holiday is detected today, the heating schedule for the selected day is used instead.",
-                    "holiday_use_day": "Which weekday schedule to use on public holidays."
+                    "holiday_use_day": "Which weekday schedule to use on public holidays.",
+                    "vacation_home_use_day": "Overrides Holiday Use Day while the “Vacation at home” switch is active. Falls back to Holiday Use Day if left empty."
                 }
             }
         },
         "error": {
-            "no_trvs": "Please select at least one thermostat (TRV)."
+            "no_trvs": "Please select at least one thermostat (TRV).",
+            "trv_in_use": "At least one of these thermostats is already controlled by another Tempix entry. A thermostat belongs to exactly one entry.",
+            "invalid_adjustments": "The adjustments JSON is invalid. Expected a JSON list of objects, each with a \"time\" field (for example \"08:00\")."
         }
     },
     "entity": {
@@ -825,41 +789,20 @@
             "sunshine_offset_value": {
                 "name": "Sunshine Offset Value"
             },
-            "away_offset": {
-                "name": "Away Offset"
-            },
-            "aggressive_range": {
-                "name": "Aggressive Range"
-            },
-            "aggressive_offset": {
-                "name": "Aggressive Offset"
-            },
-            "frost_protection_temp": {
-                "name": "Frost Protection Temperature"
-            },
             "temp_comfort_static": {
                 "name": "Comfort Temperature"
             },
             "temp_eco_static": {
                 "name": "Eco Temperature"
             },
-            "window_open_temp": {
-                "name": "Window Open Temperature"
-            },
             "party_temperature": {
                 "name": "Party Temperature"
             },
             "vacation_temperature": {
-                "name": "Vacation Temperature"
-            },
-            "idle_temperature": {
-                "name": "Idle Temperature"
-            },
-            "generic_calibration_limit": {
-                "name": "Calibration Limit"
+                "name": "Vacation away temperature"
             },
             "max_smart_preconditioning": {
-                "name": "Smart Pre-Conditioning (Max. Duration)"
+                "name": "Smart Pre-Conditioning Max. Duration"
             },
             "learned_climate_rate": {
                 "name": "Smart Pre-Conditioning Learning Rate"
@@ -873,7 +816,10 @@
                 "name": "Party Mode"
             },
             "vacation_mode_switch": {
-                "name": "Vacation Mode"
+                "name": "Vacation away"
+            },
+            "vacation_home": {
+                "name": "Vacation at home"
             },
             "liming_protection": {
                 "name": "Liming Protection"
@@ -884,8 +830,8 @@
             "automation_active": {
                 "name": "Automation Active"
             },
-            "manual_override": {
-                "name": "Manual Override"
+            "manual_mode": {
+                "name": "Manual Mode"
             },
             "temporary_manual_override": {
                 "name": "Temporary Manual Override"
@@ -947,6 +893,14 @@
                 "generic": "Generic (Target Temp)"
             }
         },
+        "valve_mode": {
+            "options": {
+                "off": "Off",
+                "regular": "Linear",
+                "pessimistic": "Pessimistic (opens earlier)",
+                "optimistic": "Optimistic (opens later)"
+            }
+        },
         "calibration_step_size": {
             "options": {
                 "auto": "Auto",
@@ -984,6 +938,17 @@
                 "sun": "Sunday"
             }
         },
+        "vacation_home_use_day": {
+            "options": {
+                "mon": "Monday",
+                "tue": "Tuesday",
+                "wed": "Wednesday",
+                "thu": "Thursday",
+                "fri": "Friday",
+                "sat": "Saturday",
+                "sun": "Sunday"
+            }
+        },
         "away_behavior": {
             "options": {
                 "offset": "Apply Offset",
@@ -991,6 +956,77 @@
                 "off": "Turn Off",
                 "ignore": "Ignore Absence"
             }
+        }
+    },
+    "exceptions": {
+        "override_disabled": {
+            "message": "The temporary manual override is disabled for {name}. Enable 'Enable Temporary Manual Override' in the options first."
+        }
+    },
+    "issues": {
+        "room_paused": {
+            "title": "{name} is paused",
+            "description": "Automatic climate control for \"{name}\" has been paused since {since} because: {reason}. Check whether the affected sensor is still working (e.g. dead battery or lost connection) — the room will resume automatically once it recovers."
+        },
+        "room_update_failing": {
+            "title": "{name}: automatic control is failing",
+            "description": "The update loop for \"{name}\" has been failing since {since} with: {error}. The room is not being controlled. Check the log for the full traceback and consider reloading the integration."
+        },
+        "room_calibration_unavailable": {
+            "title": "{name}: calibration is inactive",
+            "description": "Generic calibration for \"{name}\" has not been working since {since}: {trvs} reports no internal temperature (current_temperature is empty). The room keeps heating/cooling, but with the uncalibrated setpoint. Typical causes: thermostat summer mode (e.g. FRITZ heating schedule) or a lost radio connection. The issue resolves itself once the thermostat reports a temperature again."
+        },
+        "room_trv_unavailable": {
+            "title": "{name}: thermostat unreachable",
+            "description": "The thermostat/AC for \"{name}\" has been unavailable since {since}: {trvs}. Tempix cannot control this device — it is skipped entirely, so it may be stuck in its last state (e.g. still heating). Check the device's power, battery and radio connection. The issue resolves itself once the device is reachable again."
+        },
+        "room_trv_unavailable_paused": {
+            "title": "{name}: device unreachable in manual mode",
+            "description": "\"{name}\" is in manual mode, so Tempix deliberately sends no commands of its own. The thermostat/AC has been unavailable since {since}, though: {trvs}. Changes you make on the Tempix card are passed on but do not reach the device — the card still shows them. Check the device's power, battery and radio connection. If the device is off on purpose (e.g. for the season), ignore this issue; it stays hidden across restarts until the device has been back. The issue resolves itself once the device is reachable again."
+        },
+        "room_degraded": {
+            "title": "{name}: running on a fallback value",
+            "description": "\"{name}\" has been running on a degraded input since {since} instead of the real sensor value: {reason}. Depending on the cause, Tempix keeps controlling the room on this untrusted basis or holds the setpoints: if all room sensors are down, the thermostats keep their last setpoint (only valve position and frost protection continue). Check the affected sensor. The issue resolves itself once the input is valid again."
+        },
+        "room_dead_reference": {
+            "title": "{name}: configured entity no longer exists",
+            "description": "\"{name}\" refers to entities that do not exist in Home Assistant: {entities}. Detected since {since}. A deleted or renamed entity produces no error — it fails silently: presence detection, window detection or the schedule can stop working with nothing anywhere to show for it. Remove the reference in the room's settings, or restore the entity. The notice disappears once the reference is removed or the entity is restored; until then it stays."
+        },
+        "config_temp_order": {
+            "title": "{name}: Comfort/Eco temperature order looks reversed",
+            "description": "\"{name}\" has comfort and eco in the same direction, but the temperatures contradict it: {details}. Heating: comfort should be at least eco; cooling: comfort should be at most eco. As configured, comfort heats/cools less than eco. Check the room's temperatures. This notice resolves itself once the settings are consistent."
+        },
+        "config_mode_conflict": {
+            "title": "{name}: comfort and eco disagree on heating vs. cooling",
+            "description": "\"{name}\" has one phase on heat and the other on cool: {details}. Tempix then silently treats the whole room as cooling. Set both phases to the same direction. This notice resolves itself once the settings are consistent."
+        },
+        "config_frost_above_eco": {
+            "title": "{name}: frost protection is above the eco temperature",
+            "description": "Frost protection for \"{name}\" is set higher than the eco temperature: {details}. Frost protection then raises every eco target to the frost temperature, so eco never takes effect as configured. Lower the frost temperature or raise eco."
+        },
+        "config_adjustments": {
+            "title": "{name}: schedule adjustments contain unusable entries",
+            "description": "The adjustments of \"{name}\" contain entries that will be ignored or never match: {details}. Entry numbers start at 0. Fields: time must be HH:MM (e.g. 06:30), mode one of comfort/eco/off/auto, days must contain Mon–Sun (capitalised, e.g. Mon, Sat). Fix the JSON in the room's settings."
+        },
+        "config_holiday_no_day": {
+            "title": "{name}: holiday calendar without a replacement weekday",
+            "description": "\"{name}\" uses the holiday calendar {details}, but no weekday is set to use on holidays. The holiday override never takes effect. Set the holiday weekday in the room's settings."
+        },
+        "config_aggressive_no_offset": {
+            "title": "{name}: aggressive mode without an offset",
+            "description": "\"{name}\" has aggressive mode enabled ({details}). The boost has no effect. Set an offset above 0 or turn aggressive mode off."
+        },
+        "config_preconditioning_zero": {
+            "title": "{name}: smart pre-conditioning has no lead time",
+            "description": "\"{name}\" has smart pre-conditioning enabled, but the maximum lead time is 0 ({details}). It can never start early. Set a maximum lead time above 0 or turn it off."
+        },
+        "config_proximity_zero": {
+            "title": "{name}: proximity distance is 0",
+            "description": "\"{name}\" uses a proximity sensor with {details}. The proximity “towards” trigger practically never fires (the “arrived” channel ignores the distance). Set a distance above 0."
+        },
+        "config_valve_min_not_below_max": {
+            "title": "{name}: minimum valve opening is not below the maximum",
+            "description": "\"{name}\" has valve positioning enabled with {details}. The valve can then only be closed or fully at the maximum opening, nothing in between. Set the minimum opening below the maximum opening."
         }
     }
 }

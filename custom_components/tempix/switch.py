@@ -8,17 +8,17 @@ from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.restore_state import RestoreEntity
 
 from custom_components.tempix.const import (
     DOMAIN,
     CONF_PARTY_MODE_SWITCH,
     CONF_VACATION_MODE_SWITCH,
     CONF_GUEST_MODE_SWITCH,
+    CONF_VACATION_HOME,
     CONF_AUTOMATION_ACTIVE,
-    CONF_MANUAL_OVERRIDE,
+    CONF_MANUAL_MODE,
     CONF_SMART_PRECONDITIONING,
     CONF_SUNSHINE_OFFSET,
     CONF_FORCE_COMFORT_SWITCH,
@@ -26,6 +26,7 @@ from custom_components.tempix.const import (
     CONF_LIMING_PROTECTION,
     CONF_FROST_PROTECTION_ENABLED,
 )
+from custom_components.tempix.device import tempix_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +55,10 @@ async def async_setup_entry(
         ),
         TempixSwitch(
             coordinator, entry,
+            CONF_VACATION_HOME, "mdi:calendar-star"
+        ),
+        TempixSwitch(
+            coordinator, entry,
             CONF_LIMING_PROTECTION, "mdi:valve"
         ),
         TempixSwitch(
@@ -66,7 +71,7 @@ async def async_setup_entry(
         ),
         TempixSwitch(
             coordinator, entry,
-            CONF_MANUAL_OVERRIDE, "mdi:hand-back-right-outline"
+            CONF_MANUAL_MODE, "mdi:hand-back-right-outline"
         ),
         TempixSwitch(
             coordinator, entry,
@@ -88,8 +93,18 @@ async def async_setup_entry(
     ])
 
 
-class TempixSwitch(SwitchEntity, RestoreEntity):
-    """Switch that updates Tempix config options."""
+class TempixSwitch(SwitchEntity):
+    """Switch that updates Tempix config options.
+
+    Kein ``RestoreEntity``: alle zwölf Keys sind ``bool``-Felder mit
+    Default in ``TempixConfig``, ``getattr`` liefert also nie ``None`` und der
+    Restore-Zweig war unerreichbar. Persistenz liefert ``entry.options`` —
+    ``async_turn_on``/``off`` schreiben dorthin, der Wert ist nach einem
+    Neustart schon in der Config, bevor die Entity existiert. Gleiche
+    Konstellation wie in ``number.py``; dort ist der Restore-Pfad heute
+    ebenfalls unerreichbar (jeder Key hat einen hartkodierten Default) und
+    bleibt nur als Absicherung fuer kuenftige Keys.
+    """
 
     _attr_has_entity_name = True
     _attr_should_poll = False
@@ -108,12 +123,7 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         self._attr_translation_key = key
         self._attr_icon = icon
         self._attr_unique_id = f"{entry.entry_id}_{key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.title,
-            manufacturer="Martin Müller",
-        )
-        self._restored_is_on: bool = False
+        self._attr_device_info = tempix_device_info(entry)
 
     @property
     def available(self) -> bool:
@@ -122,17 +132,10 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
     @property
     def is_on(self) -> bool:
         """Return True if entity is on."""
-        val = getattr(self.coordinator.config, self.key, None)
-        if val is not None:
-            return bool(val)
-        return self._restored_is_on
+        return bool(getattr(self.coordinator.config, self.key, False))
 
     async def async_added_to_hass(self) -> None:
-        """Restore last known state on startup."""
         await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state is not None and last_state.state not in ("unknown", "unavailable"):
-            self._restored_is_on = last_state.state == "on"
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
@@ -152,12 +155,18 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         if sibling_key:
             new_options[sibling_key] = False
             setattr(self.coordinator.config, sibling_key, False)
+            # Wessen Wert dieser Schalter schreibt, dessen Timer besitzt er auch.
+            self.coordinator.cancel_option_timer(sibling_key)
             for entity in self.platform.entities.values():
                 if isinstance(entity, TempixSwitch) and entity.key == sibling_key:
                     entity.async_write_ha_state()
                     break
 
         setattr(self.coordinator.config, self.key, True)
+        # Ein Schalter-Klick ist eine DAUERHAFTE Ansage. Lief noch ein Timer aus
+        # `set_party_mode`/`set_guest_mode` mit Dauer, wuerde er sie spaeter
+        # ueberstimmen — hier faellt er weg.
+        self.coordinator.cancel_option_timer(self.key)
         _LOGGER.debug("TPX Switch [%s]: turn_on key=%s, updating entry options", self.entry.title, self.key)
         self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()
@@ -170,6 +179,9 @@ class TempixSwitch(SwitchEntity, RestoreEntity):
         new_options = dict(self.entry.options)
         new_options[self.key] = False
         setattr(self.coordinator.config, self.key, False)
+        # Siehe `async_turn_on`: der Schalter uebernimmt den Key, ein laufender
+        # Dauer-Timer darf ihn spaeter nicht mehr anfassen.
+        self.coordinator.cancel_option_timer(self.key)
         _LOGGER.debug("TPX Switch [%s]: turn_off key=%s, updating entry options", self.entry.title, self.key)
         self.hass.config_entries.async_update_entry(self.entry, options=new_options)
         self.async_write_ha_state()
@@ -189,11 +201,7 @@ class TempixOverrideSwitch(SwitchEntity):
         self.coordinator = coordinator
         self.entry = entry
         self._attr_unique_id = f"{entry.entry_id}_temporary_manual_override"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.title,
-            manufacturer="Martin Müller",
-        )
+        self._attr_device_info = tempix_device_info(entry)
 
     @property
     def available(self) -> bool:
@@ -225,12 +233,21 @@ class TempixOverrideSwitch(SwitchEntity):
                 self.entry.title, temp, hvac,
             )
             return
-        self.coordinator.activate_temporary_manual_override(
+        activated = self.coordinator.activate_temporary_manual_override(
             new_temp=temp,
             new_hvac=hvac,
             source="ui",
             now=datetime.now(UTC)
         )
+        if not activated:
+            # AU-5: Feature 'enable_temporary_manual_override' ist aus. Vorher
+            # blieb der Schalter still auf "aus", und das Log nannte nur
+            # "Manual TRV change ignored". Jetzt bekommt der Nutzer die Ursache.
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="override_disabled",
+                translation_placeholders={"name": self.entry.title},
+            )
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:

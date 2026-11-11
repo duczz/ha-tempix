@@ -8,15 +8,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from custom_components.tempix.const import (
     DOMAIN,
     CONF_NAME,
-    VERSION,
     CONF_HVAC_MODE_COMFORT,
     CONF_HVAC_MODE_ECO,
+)
+from custom_components.tempix.device import tempix_device_info
+from custom_components.tempix.hvac_modes import (
+    SCHEDULE_HVAC_MODE_ORDER,
+    common_schedule_hvac_modes,
 )
 
 
@@ -31,15 +34,15 @@ async def async_setup_entry(
     coordinator = data["coordinator"]
 
     selects = [
-        TempixSelect(
+        TempixHvacModeSelect(
             coordinator, entry,
             CONF_HVAC_MODE_COMFORT, None,
-            ["heat", "cool", "heat_cool", "auto", "off"]
+            list(SCHEDULE_HVAC_MODE_ORDER)
         ),
-        TempixSelect(
+        TempixHvacModeSelect(
             coordinator, entry,
             CONF_HVAC_MODE_ECO, None,
-            ["heat", "cool", "heat_cool", "auto", "off"]
+            list(SCHEDULE_HVAC_MODE_ORDER)
         ),
     ]
 
@@ -73,13 +76,7 @@ class TempixSelect(SelectEntity, RestoreEntity):
         self._attr_icon = icon
         self._restored_option: str | None = None
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.title,
-            manufacturer="Martin Müller",
-            model="Tempix",
-            sw_version=VERSION,
-        )
+        self._attr_device_info = tempix_device_info(self._entry)
 
     @property
     def available(self) -> bool:
@@ -109,3 +106,33 @@ class TempixSelect(SelectEntity, RestoreEntity):
         self.async_on_remove(
             self._coordinator.async_add_listener(self.async_write_ha_state)
         )
+
+
+class TempixHvacModeSelect(TempixSelect):
+    """Comfort-/Eco-Modus: nur Modi, die die Thermostate des Raums koennen.
+
+    Die Liste war fest ``heat/cool/heat_cool/auto/off``. ``auto`` auf einem
+    ``heat``/``off``-Thermostat fuehrte im Dispatcher zum typisierten Fallback
+    auf ``off`` — Geraet aus, Status "Comfort", keine Warnung. Der Options-Dialog
+    filterte schon nach Geraetefaehigkeit; hier gilt jetzt dieselbe Funktion
+    (``hvac_modes.common_schedule_hvac_modes``).
+
+    Ein bereits gespeicherter Wert bleibt immer waehlbar: ein kurz
+    ``unavailable``es Geraet oder ein Update, das ``hvac_modes`` verengt, darf
+    ihn nicht aus der Liste werfen — HA zeigt eine Auswahl, deren Wert nicht in
+    ``options`` steht, als "unbekannt".
+
+    ``options`` ist eine Property und wird bei jedem State-Write neu berechnet;
+    nach einem Neustart sind die Thermostate oft noch nicht da.
+    """
+
+    @property
+    def options(self) -> list[str]:
+        modes = common_schedule_hvac_modes(
+            self.hass, list(self._coordinator.config.trvs or []))
+        current = self.current_option
+        if current and current not in modes:
+            modes = [*modes, current]
+        # Anzeigereihenfolge wie im Dialog; Unbekanntes (alter Wert) ans Ende.
+        order = {m: i for i, m in enumerate(SCHEDULE_HVAC_MODE_ORDER)}
+        return sorted(modes, key=lambda m: order.get(m, len(order)))

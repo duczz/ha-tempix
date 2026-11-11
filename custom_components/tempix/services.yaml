@@ -11,6 +11,12 @@ trigger_update:
 set_party_mode:
   description: "Set party mode status."
   fields:
+    config_entry_id:
+      description: "Optional: Target specifically one room (config entry ID). Without it, all rooms are set (house-wide)."
+      required: false
+      selector:
+        config_entry:
+          integration: tempix
     status:
       description: "True to enable, False to disable."
       example: true
@@ -31,6 +37,12 @@ set_party_mode:
 set_guest_mode:
   description: "Set guest mode status."
   fields:
+    config_entry_id:
+      description: "Optional: Target specifically one room (config entry ID). Without it, all rooms are set (house-wide)."
+      required: false
+      selector:
+        config_entry:
+          integration: tempix
     status:
       description: "True to enable, False to disable."
       example: true

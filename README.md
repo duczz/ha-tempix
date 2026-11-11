@@ -249,8 +249,7 @@ cards:
 
 | Dokument | Zielgruppe |
 |---|---|
-| [Administrator-Handbuch](.docs/admin_handbuch.md) | Technisch: Architektur, Alle Parameter, Debugging |
-| [Endanwender-Handbuch](.docs/endanwender_handbuch.md) | Praktisch: Jede Funktion mit Beispiel & Schritt-für-Schritt |
+| [Endanwender-Handbuch](docs/endanwender_handbuch.md) | Praktisch: Jede Funktion mit Beispiel & Schritt-für-Schritt |
 | [Changelog](CHANGELOG.md) | Alle Versionen |
 
 

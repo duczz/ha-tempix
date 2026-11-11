@@ -17,15 +17,14 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from custom_components.tempix.const import (
     DOMAIN,
     SCHEDULING_MODE_CALENDAR,
-    VERSION,
 )
+from custom_components.tempix.device import tempix_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,14 +47,23 @@ async def async_setup_entry(
             "target_temperature", "Target Temperature",
             "mdi:thermometer-auto", SensorDeviceClass.TEMPERATURE,
             temp_unit,
-            lambda e: e.calculate_target_temperature()
+            # `coordinator.current_temperature` statt `e.calculate_*` — das ist
+            # der Wert, der WIRKLICH gefahren wird. Der direkte
+            # Engine-Aufruf war doppelt daneben: post-Flip ist die V1-Kette der
+            # Beobachter, und ohne `_manual_override_temp` zeigte der Sensor
+            # auch pre-Flip einen aktiven Temporary Override nie an.
+            lambda e, c=coordinator: c.current_temperature
         ),
         TempixSensor(
             coordinator, engine, entry,
             "external_temperature", "External Room Temperature",
             "mdi:thermometer", SensorDeviceClass.TEMPERATURE,
             temp_unit,
-            lambda e: e._resolve_room_temp()
+            # snapshot.room_temperature statt
+            # live engine._resolve_room_temp() — derselbe Wert, den auch
+            # TempixStatusSensor.extra_state_attributes jetzt liest.
+            lambda e, c=coordinator: (
+                c._v2_last_snapshot.room_temperature if c._v2_last_snapshot else None)
         ),
         TempixSensor(
             coordinator, engine, entry,
@@ -116,12 +124,11 @@ async def async_setup_entry(
             )
         )
 
-    # Cleanup orphan entities (Phase 52)
+    # Cleanup orphan entities
     from homeassistant.helpers import entity_registry as er
     registry = er.async_get(hass)
     entities = er.async_entries_for_config_entry(registry, entry.entry_id)
     
-    # Get current expected unique IDs
     expected_unique_ids = {s.unique_id for s in sensors}
     
     for entity in entities:
@@ -232,13 +239,7 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
 
         # Device Info for UI grouping
         self._restored_native_value: str | None = None
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=self._entry.title,
-            manufacturer="Martin Müller",
-            model="Tempix",
-            sw_version=VERSION,
-        )
+        self._attr_device_info = tempix_device_info(entry)
 
     @property
     def available(self) -> bool:
@@ -254,32 +255,46 @@ class TempixStatusSensor(SensorEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         engine = self._engine
-        is_vacation, _ = engine.is_vacation_mode()
-        is_party, _ = engine.check_party_mode()
         adj = engine.get_active_adjustment()
+        # Ein Großteil der Werte liest den Snapshot statt live
+        # engine.*(). Kein Live-Fallback, wenn noch kein
+        # V2-Zyklus lief (konsistent mit binary_sensor.py/climate.py) —
+        # bool|None-Felder (anybody_home/presence_active/proximity_arrived/
+        # window_open/set_comfort) bleiben dabei None statt zu False zu
+        # kollabieren, wie es der jeweilige V1-Aufruf auch täte. season_mode
+        # ebenfalls Snapshot, Default True bei fehlendem Snapshot (V1s Vertrag).
+        snapshot = self._coordinator._v2_last_snapshot
 
         attrs: dict[str, Any] = {
             "hvac_mode": self._coordinator.current_hvac,
             "target_temperature": self._coordinator.current_temperature,
-            "external_room_temperature": engine._resolve_room_temp(),
-            "season_mode": engine.is_season_mode(),
-            "automation_active": engine.is_automation_active(),
-            "manual_override": engine.config.manual_override,
+            "external_room_temperature": snapshot.room_temperature if snapshot else None,
+            "season_mode": snapshot.season_mode if snapshot else True,
+            # Computed gate, not the switch's raw value — see
+            # engine_protection.is_automation_active docstring.
+            "automation_active": bool(snapshot and snapshot.automation_active),
+            "manual_mode": engine.config.manual_mode,
             "outside_temperature": engine._float_state(engine.config.outside_temp_sensor),
-            "anybody_home": engine.is_anybody_home(),
+            "anybody_home": snapshot.anybody_home if snapshot else None,
             "scheduler_active": engine.is_scheduler_active(),
-            "presence_active": engine.is_presence_active(),
-            "proximity_arrived": engine.check_proximity_arrived(),
+            "presence_active": snapshot.presence_active if snapshot else None,
+            "proximity_arrived": snapshot.proximity_arrived if snapshot else None,
             "proximity_towards": engine.check_proximity_towards(),
-            "window_open": engine.is_window_open(),
-            "vacation_mode": is_vacation,
-            "party_mode": is_party,
+            "window_open": snapshot.window_open if snapshot else None,
+            "vacation_mode": bool(snapshot and snapshot.vacation_active),
+            "party_mode": bool(snapshot and snapshot.party_active),
             "guest_mode": engine.is_guest_mode(),
-            "away": engine.is_away(),
-            "force_comfort": engine.is_force_comfort_temp(),
-            "force_eco": engine.is_force_eco_temp(),
-            "smart_preconditioning_active": getattr(engine, "is_smart_preconditioning_active", lambda: False)(),
-            "set_comfort": engine.should_set_comfort(),
+            "away": bool(snapshot and snapshot.away),
+            "force_comfort": bool(snapshot and snapshot.force_comfort),
+            "force_eco": bool(snapshot and snapshot.force_eco),
+            "smart_preconditioning_active": bool(snapshot and snapshot.preconditioning_active),
+            # Verhaltensfix: snapshot.schedule_comfort spiegelt
+            # die ECHTE Entscheidung (should_set_comfort MIT dem aufgelösten
+            # entry_mode im Coordinator) — der bisherige Aufruf
+            # hier war arglos (Default entry_mode="auto") und konnte bei
+            # aktivem Comfort-/Eco-Adjustment einen anderen Wert zeigen als
+            # das, was tatsächlich die Hardware treibt.
+            "set_comfort": snapshot.schedule_comfort if snapshot else None,
             "adjustment": adj.get("name") if adj else None,
             "last_changes": self._coordinator.last_changes,
             "calibration_offsets": self._coordinator.last_calibrations,
@@ -333,13 +348,7 @@ class TempixSensor(SensorEntity, RestoreEntity):
 
         self._restored_native_value: str | float | None = None
         # Device Info for UI grouping
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=coordinator.config.name,
-            manufacturer="Martin Müller",
-            model="Virtual Thermostat",
-            sw_version=VERSION,
-        )
+        self._attr_device_info = tempix_device_info(entry)
 
     @property
     def available(self) -> bool:
@@ -350,9 +359,18 @@ class TempixSensor(SensorEntity, RestoreEntity):
         try:
             val = self._val_func(self._engine)
             if val is not None:
+                # AU-1: Restore nur bis zum ersten gültigen Wert nach dem Start.
+                # Danach zeigt ein Quellenverlust "unbekannt" statt eines Werts
+                # von vor dem Neustart.
+                self._restored_native_value = None
                 return val
-        except Exception:
-            pass
+        except Exception as err:
+            # AU-2: nicht still schlucken. DEBUG, weil native_value bei jedem
+            # State-Write läuft; ein WARNING je Aufruf würde das Log fluten.
+            _LOGGER.debug(
+                "TPX sensor %s: native_value failed: %r",
+                self._attr_translation_key, err,
+            )
         return self._restored_native_value
 
     async def async_added_to_hass(self) -> None:

@@ -6,7 +6,7 @@ Comfort / eco / window temperature resolution and the main
 """
 from __future__ import annotations
 
-from custom_components.tempix.const import DEFAULT_VACATION_TEMP
+from custom_components.tempix.const import DEFAULT_PARTY_TEMP, DEFAULT_VACATION_TEMP
 
 
 class TemperatureMixin:
@@ -57,12 +57,9 @@ class TemperatureMixin:
         comfort = self.resolve_comfort_temperature()
         eco = self.resolve_eco_temperature()
 
-        if self.is_frost_protection():
-            return self.config.frost_protection_temp
-
         # Manual override takes priority over liming protection (is_liming_time is a
         # maintenance/comfort function, not a safety function like frost protection).
-        # A3: an OPEN WINDOW suppresses the override — heating/cooling against an
+        # An OPEN WINDOW suppresses the override — heating/cooling against an
         # open window wastes energy no matter how deliberate the override was.
         # Suppressed, not cleared: closing the window lets it take effect again.
         # Window uncertainty (None) keeps the override — unavailable sensors must
@@ -83,7 +80,11 @@ class TemperatureMixin:
 
         window_temp = self.resolve_window_open_temperature()
         if window_open_status:
-            if self.config.frost_protection_enabled:
+            # Frost protection is a HEATING-only concept (mirrors
+            # calculate_hvac_mode): a cooling room must never chase the frost
+            # minimum just because frost_protection_enabled happens to be True —
+            # that would make the AC actively cool against an open window.
+            if self.config.frost_protection_enabled and not self.is_cooling:
                 frost_min = self.config.frost_protection_temp
                 return max(frost_min, window_temp) if window_temp > 0 else frost_min
             return window_temp if window_temp > 0 else 0.0
@@ -97,7 +98,9 @@ class TemperatureMixin:
 
         is_party, party_temp = self.check_party_mode()
         if is_party:
-            return party_temp if party_temp is not None else comfort
+            # DEFAULT_PARTY_TEMP, not comfort — matches
+            # what the Number entity shows when party_temperature is unset.
+            return party_temp if party_temp is not None else DEFAULT_PARTY_TEMP
 
         adj = self.get_active_adjustment()
         adj_comfort = self.get_adjustment_comfort(adj)
@@ -124,14 +127,18 @@ class TemperatureMixin:
                 else:
                     target = eff_comfort - away_offset  # Energiesparen: kälter werden lassen
 
-        # Sunshine Offset – only in comfort mode, only when sunny
+        # Sunshine Offset – only in comfort mode, only when sunny.
+        # Solar-gain compensation → REDUCE the target in BOTH modes: heating
+        # needs less (the sun helps warm the room), cooling needs more (a lower
+        # cool setpoint = more cooling, to counter the solar heat). A raised
+        # cool target would let the room get warmer exactly when the sun is
+        # already heating it — the opposite of the documented "reduced" intent.
         if set_comfort and self.is_sunshine_offset_active():
             offset = self.config.sunshine_offset_value
-            if self.is_cooling:
-                target += offset
-                self.debug_log(f"Sunshine Offset: target +{offset}°C (Kühlen)")
-            else:
-                target -= offset
-                self.debug_log(f"Sunshine Offset: target -{offset}°C (Heizen)")
+            target -= offset
+            self.debug_log(
+                f"Sunshine Offset: target -{offset}°C "
+                f"({'Kühlen: mehr kühlen' if self.is_cooling else 'Heizen: weniger heizen'})"
+            )
 
         return target

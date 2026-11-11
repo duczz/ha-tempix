@@ -19,6 +19,33 @@ PLATFORMS = [Platform.CLIMATE, Platform.SENSOR, Platform.BINARY_SENSOR, Platform
 
 INVALID_STATES = [STATE_UNKNOWN, STATE_UNAVAILABLE, None, ""]
 
+# ── V2 rollout flags ─────────────────────────────────────────────────────────
+# Which engine drives the hardware. Deliberately a CONSTANT, not a user
+# option (support chaos). Rollback = flip back to "v1" — one line, no
+# data loss (both engines share the persisted domain state).
+ACTIVE_ENGINE = "v2"  # "v1" | "v2"
+# Parallel validation. Post-flip INVERTED: V2 drives the hardware,
+# V1 keeps computing as the OBSERVER and every deviation is logged as
+# structured DecisionDiff JSON.
+#
+# Post-flip this flag no longer switches V2 OFF — see V2_ACTIVE below.
+PARALLEL_VALIDATION = True
+
+# Does the V2 stack exist at all this run?
+#
+# The observer flag alone is the wrong gate post-flip. V2 IS the engine then,
+# so its ledger/dispatcher lifecycle and its drive path must run even if nobody
+# is watching. Gating them on PARALLEL_VALIDATION made the combination
+# ("v2", False) a SILENT no-op: V1's apply loop is gated off by ACTIVE_ENGINE,
+# V2 never ran — no engine drove the hardware, and because `_v2_controlled`
+# defaults to True, not a single repair issue would have fired.
+#
+# Rule of thumb for the remaining cutover:
+#   V2_ACTIVE           → the V2 stack runs (stores, ledger confirm, drive)
+#   ACTIVE_ENGINE=="v2" → V2's result reaches the hardware
+#   PARALLEL_VALIDATION → the OTHER engine computes along as the observer
+V2_ACTIVE = ACTIVE_ENGINE == "v2" or PARALLEL_VALIDATION
+
 MIN_CALENDAR_SCAN_INTERVAL = 5   # minutes
 MAX_CALENDAR_SCAN_INTERVAL = 60  # minutes
 
@@ -71,7 +98,6 @@ CONF_PRESENCE_REACTION_OFF = "presence_reaction_off"
 
 # 8. Adjustments & Overrides
 CONF_ADJUSTMENTS = "adjustments"
-CONF_SYNC_ADJUSTMENTS = "sync_adjustments"
 CONF_FORCE_COMFORT_SWITCH = "force_comfort_switch"
 CONF_FORCE_ECO_SWITCH = "force_eco_switch"
 CONF_ENABLE_TEMPORARY_MANUAL_OVERRIDE = "enable_temporary_manual_override"
@@ -123,7 +149,6 @@ CONF_AGGRESSIVE_CALIBRATION_SWITCH = "aggressive_calibration_switch"
 # 14. Frost Protection
 CONF_FROST_PROTECTION_ENABLED = "frost_protection_enabled"
 CONF_FROST_PROTECTION_TEMP = "frost_protection_temp"
-CONF_FROST_PROTECTION_DURATION = "frost_protection_duration"
 
 # 15. Liming Protection
 CONF_LIMING_PROTECTION = "liming_protection"
@@ -141,7 +166,7 @@ CONF_VALVE_MODE = "valve_mode"
 CONF_VALVE_DIFF = "valve_diff"
 CONF_VALVE_STEP = "valve_step"
 CONF_VALVE_MAX = "valve_max"
-CONF_VALVE_TIMEOUT = "valve_timeout"
+CONF_VALVE_MIN = "valve_min"
 CONF_VALVE_KEYWORD = "valve_keyword"
 
 # 18. Custom Settings
@@ -150,16 +175,19 @@ CONF_LOG_LEVEL = "log_level"
 
 # 19. Automation Control
 CONF_AUTOMATION_ACTIVE = "automation_active"
-CONF_MANUAL_OVERRIDE = "manual_override"
+CONF_MANUAL_MODE = "manual_mode"
+# Bis 1.6.x hiess der Pause-Schalter "manual_override" (Key + unique_id);
+# `async_setup_entry` zieht beides beim Start um.
+LEGACY_CONF_MANUAL_OVERRIDE = "manual_override"
 CONF_DEBUG_MODE = "debug_mode"
 CONF_SENSOR_RETENTION = "sensor_retention"
 
-# 20. Evolution Features (v1.3.0)
+# 20. Evolution Features
 CONF_SMART_PRECONDITIONING = "smart_preconditioning"
 CONF_SUNSHINE_OFFSET = "sunshine_offset"
 CONF_SUNSHINE_OFFSET_VALUE = "sunshine_offset_value"
 
-# 21. Calendar Integration (v1.4.0)
+# 21. Calendar Integration
 CONF_SCHEDULING_MODE = "scheduling_mode"
 SCHEDULING_MODE_HELPER = "helper"
 SCHEDULING_MODE_CALENDAR = "calendar"
@@ -168,13 +196,13 @@ CONF_CALENDAR = "calendar"
 CONF_CALENDAR_EVENT = "calendar_event"
 CONF_CALENDAR_ROOM = "calendar_room"
 CONF_CALENDAR_SCAN_INTERVAL = "calendar_scan_interval"
-CONF_SYNC_CALENDAR_WITH_ENTITIES = "sync_calendar_with_entities"
 CONF_HOLIDAY_CALENDAR = "holiday_calendar"
 CONF_HOLIDAY_USE_DAY = "holiday_use_day"
+CONF_VACATION_HOME = "vacation_home"
+CONF_VACATION_HOME_USE_DAY = "vacation_home_use_day"
 
-# 22. Adaptive Learning (v1.5.0)
+# 22. Adaptive Learning
 CONF_LEARNED_CLIMATE_RATE = "learned_climate_rate"
-CONF_CLIMATE_RATE_LOOKBACK = "climate_rate_lookback"
 CONF_MAX_SMART_PRECONDITIONING = "max_smart_preconditioning"
 
 # ─── Away Behavior Options ────────────────────────────────────────────────────────
@@ -204,6 +232,7 @@ DEFAULT_HYSTERESIS = 0.3
 DEFAULT_GENERIC_CALIBRATION_LIMIT = 5.0
 DEFAULT_VALVE_DIFF = 1.0
 DEFAULT_VALVE_MAX = 100
+DEFAULT_VALVE_MIN = 0  # 0 = no minimum opening (behaviour before the option)
 DEFAULT_VALVE_STEP = 10
 DEFAULT_PROXIMITY_DISTANCE = 500
 DEFAULT_PROXIMITY_DURATION = {"hours": 0, "minutes": 0, "seconds": 0}
@@ -211,7 +240,6 @@ DEFAULT_WINDOW_OPEN_TEMP = 0.0
 DEFAULT_LIMING_DURATION = 1
 DEFAULT_ACTION_DELAY = {"hours": 0, "minutes": 0, "seconds": 2}
 DEFAULT_CALIBRATION_TIMEOUT = {"hours": 0, "minutes": 1, "seconds": 0}
-DEFAULT_VALVE_TIMEOUT = {"hours": 0, "minutes": 20, "seconds": 0}
 DEFAULT_SENSOR_RETENTION = {"hours": 0, "minutes": 0, "seconds": 30}
 DEFAULT_CALENDAR_SCAN_INTERVAL = 15
 DEFAULT_SUNSHINE_OFFSET_VALUE = 1.0
@@ -219,13 +247,18 @@ DEFAULT_CLIMATE_RATE = 1.0  # °C per hour
 DEFAULT_CLIMATE_RATE_LOOKBACK = 5  # cycles
 DEFAULT_MAX_SMART_PRECONDITIONING = {"hours": 2, "minutes": 0, "seconds": 0}
 
-DEFAULT_FROST_DURATION = {"days": 1, "hours": 0, "minutes": 0, "seconds": 0}
 DEFAULT_WINDOW_REACTION_OPEN = {"hours": 0, "minutes": 1, "seconds": 0}
 DEFAULT_WINDOW_REACTION_CLOSE = {"hours": 0, "minutes": 1, "seconds": 0}
 DEFAULT_PRESENCE_REACTION_ON = {"hours": 0, "minutes": 0, "seconds": 0}
 DEFAULT_PRESENCE_REACTION_OFF = {"hours": 0, "minutes": 0, "seconds": 0}
 DEFAULT_PEOPLE_ENTERING = {"hours": 0, "minutes": 0, "seconds": 0}
-DEFAULT_PEOPLE_LEAVING = {"hours": 0, "minutes": 0, "seconds": 0}
+# 0s liess jedes GPS-/WLAN-Flackern (z. B. kurzer Spaziergang) sofort auf
+# Eco kippen. 10 Minuten folgt HA-Cores eigener `consider_home`-Konvention
+# (180s Gnadenfrist auf Tracker-Ebene) plus einer weiteren Stufe darueber, und
+# deckt sich mit Better Thermostats Departure-Delay-Default fuer denselben
+# Anwendungsfall. Arrival bleibt bei 0 (Community-Konvention: GPS meldet
+# "home" selten falsch-positiv, und die Tracker-Ebene glaettet bereits vor).
+DEFAULT_PEOPLE_LEAVING = {"hours": 0, "minutes": 10, "seconds": 0}
 
 DEFAULT_MIN_TEMP = 5.0
 DEFAULT_MAX_TEMP = 30.0
@@ -262,11 +295,18 @@ class ClimateState(Enum):
     """Explicit heating state – formalises the implicit priority chain.
 
     Priority order (highest wins):
-        MANUAL_OVERRIDE > PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN >
+        MANUAL_MODE > PAUSED > INACTIVE > FROST_PROTECTION > WINDOW_OPEN >
         LIMING > VACATION > PARTY > FORCE_COMFORT > FORCE_ECO > TEMPORARY_MANUAL_OVERRIDE >
         ADJUSTMENT > SMART_PRECONDITIONING > AWAY > COMFORT > ECO
+
+    FROST_PROTECTION and WINDOW_OPEN rank above the goals because V2 derives
+    them from the CONSTRAINT trace, not from a goal: the reducers run after the
+    goal selection and can take the target over without changing the goal
+    (coordinator.py, ``_v2_climate_state``). FROST_PROTECTION therefore means
+    exactly "the frost floor intervened" — it is no longer
+    also produced by V1's absence rule (removed, see CHANGELOG 1.7.0).
     """
-    MANUAL_OVERRIDE = "manual_override"
+    MANUAL_MODE = "manual_mode"
     TEMPORARY_MANUAL_OVERRIDE = "temporary_manual_override"
     PAUSED = "paused"
     INACTIVE = "inactive"

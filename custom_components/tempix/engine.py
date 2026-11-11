@@ -6,17 +6,13 @@ Each mixin lives in its own file for easier navigation and review.
 
     ┌─────────────────────┐
     │ CalibrationMixin    │  Valve changes, offset/Tado calibration
-    │ ProtectionMixin     │  Window, frost, liming, season mode
+    │ ProtectionMixin     │  Window, liming, season, outside threshold
     │ ScheduleMixin       │  Scheduler, adjustments, comfort decision
     │ CalendarMixin       │  Calendar events, tags, comfort activation
     │ PresenceMixin       │  Persons, guest, proximity, away
     │ TemperatureMixin    │  Comfort/eco/window temperature, target chain
     │ EngineBaseMixin     │  State access, parsing, rounding, logging
     └─────────────────────┘
-
-Import path stays identical::
-
-    from custom_components.tempix.engine import TempixEngine
 """
 from __future__ import annotations
 
@@ -38,11 +34,6 @@ class TempixEngine(
     TemperatureMixin,
     EngineBaseMixin,
 ):
-    """Stateless logic engine – composed from domain-specific mixins.
-
-    All public methods remain unchanged. The coordinator continues to use::
-
-        self.engine = TempixEngine(hass, config)
-    """
+    """V1 logic engine – composed from domain-specific mixins."""
 
     pass

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, UTC
 from homeassistant.const import STATE_ON, STATE_OFF
 from homeassistant.util import dt as dt_util
 
+from custom_components.tempix.climate_rate import t1_normalization_factor
 from custom_components.tempix.const import (
     SCHEDULING_MODE_CALENDAR,
     INVALID_STATES,
@@ -89,10 +90,21 @@ class ScheduleMixin:
 
     def is_scheduler_active(self) -> bool | None:
         """Return scheduler state. ``None`` if uncertain."""
-        # Holiday override: use calendar events (if available) to check comfort
-        # based on the delegated holiday_use_day, ignoring the active scheduler.
-        if self.is_holiday_today() and self.config.holiday_use_day and self.config.calendar:
-            return self._is_holiday_comfort_via_calendar()
+        # Holiday override: check comfort based on the delegated
+        # holiday_use_day, ignoring the active scheduler's actual weekday.
+        # Prefers calendar events when a calendar is configured; falls back
+        # to the Schedule-Helper's own per-weekday slots otherwise, so
+        # scheduler-only setups (no calendar entity) are also covered.
+        if self.is_holiday_today() and self._resolve_holiday_target_day():
+            if self.config.calendar:
+                override = self._is_holiday_comfort_via_calendar()
+                # ``None`` = kein Ziel-Termin gefunden: die Umleitung ist nicht
+                # zustaendig, es gilt der Helper-Zeitplan wie an jedem anderen Tag
+                # (statt Eco, weil "nichts gefunden" als "kein Comfort" las).
+                if override is not None:
+                    return override
+            else:
+                return self._is_holiday_comfort_via_scheduler()
 
         sched = self.get_active_scheduler()
         if sched is None:
@@ -116,7 +128,14 @@ class ScheduleMixin:
         if not adjustments:
             return None
 
-        now = datetime.now(UTC)
+        # ORTSZEIT, nicht UTC. Unten werden daraus `%H:%M` und `%a`
+        # gebildet und gegen `entry["time"]` / `entry["days"]` aus dem
+        # Adjustments-JSON verglichen — die traegt der Nutzer als Wanduhrzeit
+        # ein. Mit UTC griff ein Block mit `"time": "06:00"` im Sommer erst ab
+        # 08:00 Ortszeit; der `day_offset = -1`-Fallback verdeckte das nur
+        # teilweise und verschob die Tagesgrenze mit. Gleiche Klasse wie
+        # `is_liming_time` (engine_protection.py).
+        now = dt_util.now()
         scheduler_name: str | None = None
         active_sched = self.get_active_scheduler()
         if active_sched:
@@ -156,7 +175,6 @@ class ScheduleMixin:
         adj = self.get_active_adjustment()
         if not adj:
             return None
-        # Use the ID if available, otherwise fallback to the time string
         return adj.get("id", adj.get("time"))
 
     def get_adjustment_comfort(self, entry: dict | None) -> float | None:
@@ -212,10 +230,12 @@ class ScheduleMixin:
           7. calendar event active                 → comfort_state = True
           8. scheduler active (non-calendar mode)  → comfort_state = True
           9. presence sensor active                → comfort_state = True
+         9b. (non-calendar) no scheduler and no presence sensor defined
+                                                   → cached is_anybody_home_or_proximity()
+                                                     (None if no persons/proximity)
          10. optimum start window                  → comfort_state = True
          11. persons home + force_comfort time     → True
          12. persons home                          → comfort_state
-         13. no persons/proximity defined          → is_anybody_home_or_proximity()
 
         To add a new condition: determine its priority relative to the chain above,
         insert at the correct position, and update this docstring accordingly.
@@ -273,7 +293,7 @@ class ScheduleMixin:
 
         # Optimum Start
         if self.config.smart_preconditioning and not comfort_state:
-            next_start = self.get_next_schedule_transition()
+            next_start = self.get_optimum_start_target()
             if next_start:
                 room_temp = self._resolve_room_temp()
                 target_comfort = self.resolve_comfort_temperature()
@@ -287,7 +307,7 @@ class ScheduleMixin:
                             needs_precondition = True
 
                     if needs_precondition:
-                        conditioning_rate = max(0.1, self.config.learned_climate_rate)
+                        conditioning_rate = max(0.1, self._get_effective_conditioning_rate())
                         diff = abs(target_comfort - room_temp)
                         precondition_minutes = (diff / conditioning_rate) * 60
 
@@ -308,9 +328,16 @@ class ScheduleMixin:
         # Person / Proximity Check
         if self.is_person_defined() or self.is_proximity_defined():
             if cached_home_status is None:
+                # Optimum Start above may have set the flag True before
+                # presence turned out to be unresolvable — this branch rejects
+                # that decision, so the flag must not survive it.
+                self._smart_preconditioning_active = False
                 return None
             if not cached_home_status:
                 if self.config.away_behavior != AWAY_BEHAVIOR_IGNORE:
+                    # Same reasoning: Optimum Start's "True" is vetoed by
+                    # away_behavior, the flag must be vetoed with it.
+                    self._smart_preconditioning_active = False
                     return False
 
             if self.config.persons_force_comfort:
@@ -318,7 +345,10 @@ class ScheduleMixin:
                 end_time_str = self.config.persons_force_comfort_end
 
                 try:
-                    now_time = datetime.now().time()
+                    # Use the HA-configured timezone, not the naive system clock:
+                    # on Docker/venv installs the container TZ can differ from HA's,
+                    # which shifted the persons_force_comfort window by the offset.
+                    now_time = dt_util.now().time()
                     start_time = datetime.strptime(start_time_str, "%H:%M:%S").time()
                     end_time = datetime.strptime(end_time_str, "%H:%M:%S").time()
 
@@ -331,6 +361,15 @@ class ScheduleMixin:
                     if is_in_range:
                         return True
                 except (ValueError, TypeError):
+                    # A missing/garbage start or end time must not fail silently —
+                    # it forces comfort while someone is home, which is easy to
+                    # mistake for a schedule bug. Keep the fail-safe, log the cause.
+                    _LOGGER.warning(
+                        "%s: persons_force_comfort time window unparseable "
+                        "(start=%r, end=%r) — forcing comfort while home; "
+                        "check the configured start/end times",
+                        self.config.name, start_time_str, end_time_str,
+                    )
                     return True
 
             return comfort_state
@@ -345,10 +384,7 @@ class ScheduleMixin:
         if "hvac" in overrides:
             return overrides["hvac"]
 
-        if self.is_frost_protection():
-            return self.config.hvac_mode_comfort
-
-        # A3: an open window suppresses the manual override (mirror of
+        # An open window suppresses the manual override (mirror of
         # calculate_target_temperature) — the chain below then reaches the
         # regular window handling. None (uncertain) keeps the override.
         if _manual_override_hvac is not None and self.is_window_open() is not True:
@@ -371,7 +407,14 @@ class ScheduleMixin:
             # calculate_changes clamp the 0-target up to the device minimum and
             # heat/cool AGAINST the open window — worst in cooling mode, where the
             # AC ran at its 16 °C minimum with the window wide open.
-            if self.config.frost_protection_enabled:
+            # Frost protection is a HEATING-only concept: the
+            # v1.6.7 patch above only fixed the frost-DISABLED path — with frost
+            # enabled this branch still returned hvac_mode_comfort unconditionally,
+            # so a COOLING room with frost_protection_enabled=True would command
+            # "cool" (and, via calculate_target_temperature, the frost minimum as
+            # target) with the window wide open — the exact bug class this
+            # function exists to prevent, just for the untested combination.
+            if self.config.frost_protection_enabled and not self.is_cooling:
                 return self.config.hvac_mode_comfort
             return "off"
 
@@ -409,17 +452,14 @@ class ScheduleMixin:
         """Determine the current climate state as an explicit enum value.
 
         Priority order (highest wins):
-        MANUAL_OVERRIDE >
+        MANUAL_MODE > INACTIVE > PAUSED (window uncertain) >
         WINDOW_OPEN >
         LIMING > VACATION > PARTY >
         FORCE_COMFORT > FORCE_ECO > ADJUSTMENT > SMART_PRECONDITIONING >
-        AWAY > COMFORT > ECO > PAUSED (uncertain)
+        PAUSED (uncertain) > AWAY > COMFORT > ECO
         """
-        if self.config.manual_override:
-            return ClimateState.MANUAL_OVERRIDE
-
-        if self.is_frost_protection():
-            return ClimateState.FROST_PROTECTION
+        if self.config.manual_mode:
+            return ClimateState.MANUAL_MODE
 
         if not self.is_automation_active():
             return ClimateState.INACTIVE
@@ -470,15 +510,23 @@ class ScheduleMixin:
         mode = self.config.scheduling_mode
 
         if mode == SCHEDULING_MODE_CALENDAR:
-            # A9: compute from fetched, ROOM-FILTERED events. A shared calendar
+            # Compute from fetched, ROOM-FILTERED events. A shared calendar
             # ENTITY shows whichever event is currently running in its
             # attributes — possibly another room's — which masks this room's
-            # own phase starts (real case: bedroom override survived its 21:30
-            # slot start because the entity still showed the living-room event
-            # ending 22:00). Returns None before the first successful fetch —
+            # own phase starts (real case: one room's override survived its own
+            # slot start because the entity still showed another room's
+            # later-ending event). Returns None before the first successful fetch —
             # the fingerprint's boot guard then keeps its previous value.
             transitions = self.get_filtered_calendar_transitions()
             return min(transitions) if transitions else None
+
+        # Helper-Modus mit aktiver Umleitung: die Comfort-Entscheidung
+        # (`is_scheduler_active()`) laeuft ueber den ZIEL-Tag — die Grenzen
+        # muessen von dort kommen, nicht aus den Entity-Attributen des echten
+        # Wochentags (sonst faellt ein Override am rohen Ende).
+        redirect_transitions = self.get_holiday_redirect_transitions()
+        if redirect_transitions is not None:
+            return min(redirect_transitions) if redirect_transitions else None
 
         entities: list[str] = []
         sched_id = self.get_active_scheduler()
@@ -503,6 +551,18 @@ class ScheduleMixin:
                         next_transitions.append(dt)
 
         return min(next_transitions) if next_transitions else None
+
+    def get_optimum_start_target(self) -> datetime | None:
+        """Next boundary Optimum Start preheats towards.
+
+        Calendar mode: the next event START only. Outside a daily ``time:``
+        window the running event's END is the next transition — preheating
+        towards it switched Comfort on shortly before the event was over.
+        """
+        if self.config.scheduling_mode == SCHEDULING_MODE_CALENDAR:
+            starts = self.get_filtered_calendar_transitions(starts_only=True)
+            return min(starts) if starts else None
+        return self.get_next_schedule_transition()
 
     def get_next_duration_event(self) -> datetime | None:
         """Earliest future timestamp when a duration-based state confirmation fires."""
@@ -541,6 +601,11 @@ class ScheduleMixin:
                     if last_changed:
                         events.append(last_changed + delta)
 
+        # Proximity (confirmation gate)
+        proximity_event = self.get_next_proximity_event()
+        if proximity_event:
+            events.append(proximity_event)
+
         # Windows
         window_sensors = self.config.window_sensors
         if window_sensors:
@@ -563,7 +628,7 @@ class ScheduleMixin:
 
         # Optimum Start
         if self.config.smart_preconditioning:
-            next_start = self.get_next_schedule_transition()
+            next_start = self.get_optimum_start_target()
             if next_start:
                 room_temp = self._resolve_room_temp()
                 target_comfort = self.resolve_comfort_temperature()
@@ -577,7 +642,7 @@ class ScheduleMixin:
                             needs_precondition = True
 
                     if needs_precondition:
-                        conditioning_rate = self._get_effective_conditioning_rate()
+                        conditioning_rate = max(0.1, self._get_effective_conditioning_rate())
                         precondition_minutes = (abs(target_comfort - room_temp) / conditioning_rate) * 60
 
                         max_dur = self.config.max_smart_preconditioning
@@ -596,9 +661,4 @@ class ScheduleMixin:
         if outside_temp is None:
             return base_rate
 
-        ref_temp = 5.0
-        sensitivity = 0.04
-        factor = 1.0 - (ref_temp - outside_temp) * sensitivity
-        factor = max(0.3, min(2.0, factor))
-
-        return base_rate * factor
+        return base_rate * t1_normalization_factor(outside_temp, self.is_cooling)

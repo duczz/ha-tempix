@@ -29,6 +29,7 @@ from custom_components.tempix.const import (
     TADO_MAX_OFFSET,
     INVALID_STATES,
 )
+from custom_components.tempix.valve import calculate_valve_position as _valve_curve
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -151,6 +152,14 @@ class CalibrationMixin:
                 offset = self._round_to_step(offset, step)
                 generic_offsets[trv_id] = offset
                 valve_temp += offset
+            elif generic_calib:
+                # TRV reports no internal temperature (e.g. FRITZ summer mode,
+                # DECT dropout) — offset can't be computed, target goes out
+                # uncalibrated. Coordinator tracks this for a Repair issue.
+                self.debug_log(
+                    f"Generic calibration skipped for {trv_id}: "
+                    "no internal temperature (current_temperature is None)"
+                )
 
             # Total Offset Clamping
             max_offset = 6.0
@@ -208,7 +217,12 @@ class CalibrationMixin:
     # ── valve positioning ────────────────────────────────────────────────────
 
     def calculate_valve_position(self, trv_id: str, target_temp: float) -> int:
-        """Compute valve opening percentage for positioning mode."""
+        """Compute valve opening percentage for positioning mode.
+
+        V1 only resolves the reference temperature (room sensor, else the
+        TRV's own ``current_temperature``); the curve itself is the shared
+        pure function in ``valve.py``, so V1 and V2 cannot drift on it
+        (``valve_min`` would otherwise need a second copy of the formula)."""
         mode = self.config.valve_mode
         if mode == "off":
             return 100
@@ -217,34 +231,17 @@ class CalibrationMixin:
         if room_temp is None:
             state = self._get_state(trv_id)
             room_temp = state.attributes.get("current_temperature") if state else None
-        if room_temp is None or target_temp is None:
-            return 100
 
-        diff = target_temp - room_temp
-        max_diff = self.config.valve_diff
-        valve_max = self.config.valve_max
-        step = self.config.valve_step
-
-        if diff >= max_diff:
-            return valve_max
-        if diff <= 0:
-            return 0
-        if max_diff <= 0:
-            return valve_max
-
-        opening_regular = (100 / max_diff) * diff
-        if mode == "pessimistic":
-            opening = math.sqrt(abs(opening_regular)) * 10
-        elif mode == "optimistic":
-            opening = (opening_regular ** 2) / 100
-        else:
-            opening = opening_regular
-
-        opening_abs = (opening / 100) * valve_max
-        if self.is_force_comfort_temp():
-            return valve_max
-
-        return int(((opening_abs + step / 2) // step) * step)
+        return _valve_curve(
+            mode=mode,
+            max_diff=self.config.valve_diff,
+            valve_max=self.config.valve_max,
+            step=self.config.valve_step,
+            room_temp=room_temp,
+            target_temp=target_temp,
+            force_comfort=self.is_force_comfort_temp(),
+            valve_min=self.config.valve_min,
+        )
 
     # ── calibration calculation ──────────────────────────────────────────────
 

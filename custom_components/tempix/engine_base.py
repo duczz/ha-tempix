@@ -7,6 +7,7 @@ and the shared ``__init__`` for the composed engine class.
 from __future__ import annotations
 
 import logging
+import math
 import re
 from datetime import datetime, timedelta, timezone, UTC
 from typing import TYPE_CHECKING, Any, Callable
@@ -50,9 +51,29 @@ class EngineBaseMixin:
         self._schedule_slots: dict[str, dict[str, list[dict[str, Any]]]] = {}
         self._last_home_status: bool | None = None  # memory for current session
         self._last_outside_ok: bool | None = None  # hysteresis state for outside threshold
-        self._guest_warned: set[str] = set()  # O-5: warn once per unavailable guest entity
+        self._guest_warned: set[str] = set()  # warn once per unavailable guest entity
+        # Wie `_guest_warned`: einmal warnen, bei Erholung zuruecksetzen. Eine
+        # kaputte `liming_time` bleibt bis zur Korrektur kaputt — eine nackte
+        # Warnung wuerde jeden Zyklus feuern.
+        self._liming_time_warned: bool = False
         self._reboot_logged: set[str] = set()  # log reboot/initial-state detection only once per entity per boot
         self._calendar_warned: set[str] = set()  # warn once per failed calendar lookup (use_day, use_scheduler, holiday_use_day)
+        # Last VALID state per window sensor from the PREVIOUS cycle. Feeds the
+        # reboot-safe close-delay in is_window_open: a sensor that flapped
+        # `off → unavailable → off` (router/sensor reboot) must NOT count as
+        # recently-closed = open. Updated once per cycle in set_state_snapshot.
+        self._window_prev_valid: dict[str, str] = {}
+        # sid → `last_changed` des letzten ECHTEN offen→zu. Haelt den
+        # Close-Delay ueber den ersten Zyklus hinaus, ohne den Flap-Schutz
+        # aufzuweichen (Live-Test 2026-11-04, F5; Gegenstueck in V2:
+        # `snapshot_builder._resolve_window`, `close_marks`).
+        self._window_close_marks: dict[str, datetime] = {}
+        # Sensoren mit bestaetigter Oeffnungsphase (LT-F12-Rest d): nur deren
+        # Schliessen setzt eine Marke. Gegenstueck V2: `_resolve_window`,
+        # `open_phase_confirmed`.
+        self._window_open_phase_confirmed: set[str] = set()
+        # Bestaetigte Sensoren, deren Marke am naechsten Zyklusanfang faellt.
+        self._window_pop_pending: set[str] = set()
 
     # ── injection ────────────────────────────────────────────────────────────
 
@@ -70,6 +91,16 @@ class EngineBaseMixin:
 
     def set_state_snapshot(self, snapshot: dict[str, Any]) -> None:
         """Inject a snapshot of states to be used for this calculation cycle."""
+        # Before overwriting, remember the previous cycle's VALID window states
+        # for the reboot-safe close-delay. An 'unavailable'/'unknown' reading is
+        # skipped so a flap can't erase the last known valid state.
+        for sid in self._window_pop_pending:
+            self._window_close_marks.pop(sid, None)
+        self._window_pop_pending.clear()
+        for sid in self.config.window_sensors:
+            prev = self._state_snapshot.get(sid)
+            if prev is not None and prev.state not in INVALID_STATES:
+                self._window_prev_valid[sid] = prev.state
         self._state_snapshot = snapshot
 
     def set_on_dirty(self, callback: Callable[[], None]) -> None:
@@ -117,6 +148,86 @@ class EngineBaseMixin:
         state = self._get_state(entity_id)
         return state is not None and state.state not in INVALID_STATES
 
+    def _entity_is_missing(self, entity_id: str | None) -> bool:
+        """Ist die Referenz TOT — weder in der State Machine noch in der Registry?
+
+        Abgrenzung zu `unavailable`/`unknown`: dort EXISTIERT die Entity und ist
+        nur gerade nicht auswertbar. Das ist eine Laufzeitstoerung, die sich von
+        selbst aufloesen kann, und rechtfertigt konservatives Verhalten. Eine
+        tote Referenz loest sich nie auf — konservatives Verhalten wird dort zum
+        Dauerzustand (Beispiel: ein geloeschter Kalender legte in fuenf von
+        sechs Raeumen die Abwesenheitserkennung still lahm).
+
+        **Evidenz, ausdruecklich benannt — keine Zeitheuristik.** `missing` gilt
+        genau dann, wenn KEIN State-Objekt UND KEIN Registry-Eintrag existiert.
+        Beim HA-Start haben noch nicht geladene Entities ihren Registry-Eintrag
+        bereits, der Start faellt also nicht faelschlich hierunter.
+
+        **Restrisiko, bewusst in Kauf genommen:** Entities ohne `unique_id`
+        (reine YAML-Helfer) stehen nie in der Registry. Fuer die kann `missing`
+        waehrend des Starts kurz zutreffen, obwohl sie spaeter auftauchen.
+
+        Ist die Registry nicht erreichbar, wird NICHT auf `missing` erkannt:
+        ohne Beleg keine Behauptung — das entspricht dem Verhalten von vorher.
+        """
+        if not isinstance(entity_id, str) or not entity_id:
+            return False
+        if self._get_state(entity_id) is not None:
+            return False
+        try:
+            registry = er_helper.async_get(self.hass)
+        except (KeyError, AttributeError, TypeError):
+            return False
+        return registry.async_get(entity_id) is None
+
+    def get_missing_entity_references(self) -> list[str]:
+        """Alle konfigurierten Referenzen, die es nicht (mehr) gibt.
+
+        Bewusst getrennt von `get_uncertainty_reasons()`: die Liste dort behaelt
+        ihre Bedeutung („etwas ist gerade nicht auswertbar") fuer Diagnose und
+        Statustexte. Hier steht die Teilmenge, die eine KONFIGURATIONSSTOERUNG
+        ist und deshalb keinen konservativen Laufzeit-Pfad rechtfertigt.
+        """
+        kandidaten: list[str] = [
+            *self.config.persons,
+            *self.config.guest_mode,
+            *self.config.schedulers,
+            *(self.config.calendar or ()),
+            *self.config.window_sensors,
+        ]
+        presence = self.config.presence_sensor
+        if isinstance(presence, list):
+            kandidaten.extend(presence)
+        elif presence:
+            kandidaten.append(presence)
+        if self.config.outside_temp_sensor:
+            kandidaten.append(self.config.outside_temp_sensor)
+        # Einzel-Referenzen, deren Wegfall ebenfalls still wirkt (Live-Test
+        # 2026-11-04, F11): ein geloeschtes Wetter nimmt den Sonnenschein-Offset
+        # weg, eine geloeschte Saison-Entity laesst die Saison als AN gelten.
+        # Gleiche Liste in `domain_resolvers.resolve_missing_entity_references`.
+        for eid in (
+            self.config.weather_entity,
+            self.config.season_mode_entity,
+            self.config.holiday_calendar,
+            self.config.scheduler_selector,
+            # `proximity_entity` bewusst NICHT: das Feld haelt eine DEVICE-ID
+            # (DeviceSelector), `_entity_is_missing` prueft Entity-IDs und
+            # meldete jede konfigurierte Proximity als tot.
+        ):
+            if eid:
+                kandidaten.append(eid)
+
+        gesehen: set[str] = set()
+        tot: list[str] = []
+        for eid in kandidaten:
+            if not isinstance(eid, str) or eid in gesehen:
+                continue
+            gesehen.add(eid)
+            if self._entity_is_missing(eid):
+                tot.append(eid)
+        return tot
+
     def _state_value(self, entity_id: str | None) -> str | None:
         """Return the string state or ``None``."""
         s = self._get_state(entity_id)
@@ -135,13 +246,19 @@ class EngineBaseMixin:
             return default
 
     def _temp_state(self, entity_id: str | None, default: float | None = None) -> float | None:
-        """Return temperature from state or attributes (weather/climate support)."""
+        """Return temperature from state or attributes (weather/climate support).
+
+        ``float()`` parses "nan"/"inf" without raising — reject
+        both, same reasoning as ``snapshot_builder.parse_float``.
+        """
         state_obj = self._get_state(entity_id)
         if not state_obj or state_obj.state in INVALID_STATES:
             return default
 
         try:
-            return float(state_obj.state)
+            value = float(state_obj.state)
+            if math.isfinite(value):
+                return value
         except (ValueError, TypeError):
             pass
 
@@ -149,7 +266,10 @@ class EngineBaseMixin:
             val = state_obj.attributes.get(attr)
             if val is not None:
                 try:
-                    return float(val)
+                    value = float(val)
+                    if math.isfinite(value):
+                        return value
+                    continue
                 except (ValueError, TypeError):
                     continue
 
@@ -220,7 +340,7 @@ class EngineBaseMixin:
     # ── parsing ──────────────────────────────────────────────────────────────
 
     def _ensure_utc(self, dt: datetime | None) -> datetime | None:
-        """Ensure a datetime object is timezone-aware natively in UTC."""
+        """Make a naive datetime aware by assuming UTC; aware values pass through unchanged."""
         if dt is None:
             return None
         return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
@@ -318,6 +438,17 @@ class EngineBaseMixin:
             if not self._is_state_valid(gid):
                 reasons.append(gid)
 
+        # Proximity ist der einzige Praesenz-Eingang, der kein
+        # `entity_id` ist — `proximity_entity` haelt eine DEVICE-ID, deren
+        # Entities pro Zyklus ueber die Registry aufgeloest werden. Sie kann
+        # deshalb weder im Snapshot noch in `_is_state_valid` stehen und fehlte
+        # hier, obwohl sie `is_away()` und damit den Zeitplan-Fingerprint speist.
+        # Ergebnis war eine Unsicherheit, die nirgends auftauchte — auch nicht
+        # in der Diagnose. Die Pruefung liegt in der Presence-
+        # Mixin (`proximity_states`), weil nur die das Device aufloest.
+        if self.config.proximity_entity and self.proximity_states() is None:
+            reasons.append(f"proximity:{self.config.proximity_entity}")
+
         for sid in self.config.schedulers:
             if not self._is_state_valid(sid):
                 reasons.append(sid)
@@ -332,7 +463,7 @@ class EngineBaseMixin:
     # ── minimal config ───────────────────────────────────────────────────────
 
     def is_minimal_config(self) -> bool:
-        """Return ``True`` if no scheduler, persons or presence configured."""
+        """Return ``True`` if no scheduler, persons, guests, presence/proximity or party switch configured."""
         return (
             len(self.config.persons) == 0
             and not self.config.guest_mode

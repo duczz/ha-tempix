@@ -10,12 +10,11 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 
 from custom_components.tempix.const import (
     DOMAIN,
-    VERSION,
 )
+from custom_components.tempix.device import tempix_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,38 +33,57 @@ async def async_setup_entry(
             coordinator, engine, entry,
             "season_mode",
             "mdi:snowflake", None,
-            lambda e: e.is_season_mode()
+            # season_mode ist ein eigenes Snapshot-Feld (Default True bei fehlendem Snapshot,
+            # V1s eigener Vertrag — siehe domain_resolvers.resolve_is_season_mode).
+            lambda e, c=coordinator: (
+                c._v2_last_snapshot.season_mode if c._v2_last_snapshot else True
+            )
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
             "anybody_home",
             "mdi:home-account", None,
-            lambda e: e.is_anybody_home()
+            # 1:1-Snapshot-Äquivalent, durch einen Paritätstest festgehalten.
+            lambda e, c=coordinator: bool(
+                c._v2_last_snapshot and c._v2_last_snapshot.anybody_home)
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
             "window_open",
             "mdi:window-open", BinarySensorDeviceClass.WINDOW,
-            lambda e: e.is_window_open()
+            # snapshot.window_open (der rohe, an den
+            # Builder übergebene Wert) — NICHT window_open_resolved (das ist
+            # der Builder-eigene, reboot-sichere Close-Delay-Wert und
+            # bewusst ein anderer Wert, siehe `window_open_resolved` in
+            # snapshot_builder.py).
+            lambda e, c=coordinator: bool(
+                c._v2_last_snapshot and c._v2_last_snapshot.window_open)
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
             "away_mode",
             "mdi:home-export-outline", None,
-            lambda e: e.is_away()
+            # 1:1-Snapshot-Äquivalent, durch einen Paritätstest festgehalten.
+            lambda e, c=coordinator: bool(
+                c._v2_last_snapshot and c._v2_last_snapshot.away)
         ),
         TempixBinarySensor(
             coordinator, engine, entry,
             "presence_active",
             "mdi:motion-sensor", None,
-            lambda e: e.is_presence_active()
+            # Snapshot-Feld (Snapshot.presence_active), in V2 nativ aufgelöst.
+            lambda e, c=coordinator: bool(
+                c._v2_last_snapshot and c._v2_last_snapshot.presence_active)
         ),
 
         TempixBinarySensor(
             coordinator, engine, entry,
             "proximity_arrived",
             "mdi:map-marker-radius", None,
-            lambda e: e.check_proximity_arrived()
+            # Snapshot-Feld (Snapshot.proximity_arrived) — der rohe, weiterhin V1-gebrückte
+            # Wert, nur jetzt über den Snapshot statt live gelesen.
+            lambda e, c=coordinator: bool(
+                c._v2_last_snapshot and c._v2_last_snapshot.proximity_arrived)
         ),
     ]
 
@@ -100,13 +118,7 @@ class TempixBinarySensor(BinarySensorEntity):
         self._attr_device_class = device_class
 
         # Device Info for UI grouping
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name=self._entry.title,
-            manufacturer="Martin Müller",
-            model="Tempix",
-            sw_version=VERSION,
-        )
+        self._attr_device_info = tempix_device_info(self._entry)
 
     @property
     def available(self) -> bool:
@@ -116,7 +128,12 @@ class TempixBinarySensor(BinarySensorEntity):
     def is_on(self) -> bool | None:
         try:
             return self._val_func(self._engine)
-        except Exception:
+        except Exception as err:
+            # AU-2: nicht still schlucken (DEBUG, läuft bei jedem State-Write).
+            _LOGGER.debug(
+                "TPX binary_sensor %s: is_on failed: %r",
+                self._attr_translation_key, err,
+            )
             return None
 
     async def async_added_to_hass(self) -> None:

@@ -696,9 +696,16 @@ Im selben Bereich stellst du fünf weitere Werte ein:
 
 - **Temperaturdifferenz für volle Öffnung** (Standard 1,0 °C): Abstand zur Zieltemperatur, ab der das Ventil ganz öffnet.
 - **Ventil-Schrittweite** (Standard 10 %): In diesen Prozentschritten wird die Öffnung angepasst.
-- **Mindestöffnung (Schließpunkt)** (Standard 0 = aus): Bleibt dein Ventil bis zu einer bestimmten Öffnung zu (z. B. bis 18 %), trag diesen Wert ein. Dann wirkt schon die kleinste Öffnung, die Tempix sendet. Zu (0 %) bleibt zu.
+- **Mindestöffnung (Schließpunkt)** (Standard 0 = aus): Bleibt dein Ventil bis zu einer bestimmten Öffnung zu (z. B. bis 18 %), trag diesen Wert ein. Tempix verteilt dann jede Öffnung über 0 auf den Bereich von der Mindest- bis zur maximalen Öffnung, sodass schon die kleinste Öffnung wirkt. Beispiel mit Mindestöffnung 18, Schrittweite 10 und linearer Kennlinie: statt 10 / 50 / 100 % sendet Tempix 28 / 58 / 100 %. Zu (0 %) bleibt zu.
 - **Maximale Öffnung** (Standard 100 %): Mehr als das öffnet Tempix das Ventil nie.
 - **Ventil-Entitäts-Stichwort** (Standard `valve`): Tempix steuert nur Entities, deren Name dieses Stichwort enthält. Ändere es nur, wenn Tempix die falsche oder keine Entity findet.
+
+**Wann das Ventil anders fährt:**
+
+- **Gerät aus → Ventil zu.** Berechnet Tempix „aus" (Eco-Modus auf *Aus*, Abwesenheit, Ruhezustand), wird das Ventil geschlossen, auch wenn der Raum unter dem Zielwert liegt.
+- **Raum bereits warm genug → Ventil zu.** Liegt die Raumtemperatur auf oder über dem Ziel, ist die Öffnung 0.
+- **Force Comfort → voll auf.** Der Sollwert am Thermostat geht auf dessen Maximum, beim **Kühlen** spiegelbildlich auf den *niedrigsten* Sollwert (ist „Aus, wenn Raum wärmer als Ziel" aktiv und der Raum warm genug, schaltet das Gerät stattdessen ab). Die Ventil-Entity öffnet auf die maximale Öffnung, solange der Raum unter dem Ziel liegt. Bei **offenem Fenster** wirkt Force Comfort nicht: das Gerät folgt der Fensterregel (aus, Fenstertemperatur oder Frostminimum); nur die Kalkschutz-Fahrt läuft weiter.
+- **Raumsensor nicht erreichbar.** Dann rechnet Tempix pro Gerät mit dem eigenen Ist-Wert des Thermostats weiter. Nur wenn auch dieser fehlt, fährt das Ventil ungemoduliert auf 100 %.
 
 
 ---
